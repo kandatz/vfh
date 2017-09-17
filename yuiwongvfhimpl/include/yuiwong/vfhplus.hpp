@@ -151,9 +151,7 @@ weight_current_dir = 1.0
 ...
 @endverbatim
 */
-class VFH_Algorithm
-{
-public:
+struct VFH_Algorithm {
 VFH_Algorithm( double cell_size,
 int window_diameter,
 int sector_angle,
@@ -174,6 +172,13 @@ double obs_cutoff_1ms,
 double weight_desired_dir,
 double weight_current_dir );
 ~VFH_Algorithm();
+	static void convertScan(
+		std::vector<float> const ranges,
+		double const angleMin,
+		double const angleMax,
+		double const angleIncrement,
+		double const rangeMax,
+		double result[361][2]);
 int Init();
 // Choose a new speed and turnrate based on the given laser data and current speed.
 //

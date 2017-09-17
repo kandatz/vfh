@@ -108,9 +108,9 @@ void VFH_node::odomCallback(nav_msgs::OdometryConstPtr const& odom)
 		}
 	}
 }
-void VFH_node::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan_msg)
+void VFH_node::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 {
-	ROS_DEBUG("scanCallbac ranges %zu",scan_msg->ranges.size());
+	ROS_DEBUG("scanCallbac ranges %zu",scan->ranges.size());
 	double const goalTolerance = 0.2;
 	double desiredAngle;
 	if ((ros::Time::now().toSec() - this->desiredVelocity.stamp)
@@ -119,41 +119,13 @@ void VFH_node::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan_msg)
 		return;
 	}
 	desiredAngle = this->desiredVelocity.angle;
-	unsigned int n = scan_msg->ranges.size();
-	for(unsigned i = 0; i < 361; i++)
-		m_laser_ranges[i][0] = -1;
-	int step = 1;
-	int startIndex = 0;
-	double laserSpan = scan_msg->angle_max - scan_msg->angle_min;
-	if(laserSpan > M_PI || n>180) // in case we are using HOKUYO
-	{
-		startIndex =(- M_PI/2 - scan_msg->angle_min) /scan_msg->angle_increment;
-		double rays_per_degree =(M_PI/180.0)/scan_msg->angle_increment;
-		ROS_DEBUG("scanCallback(): startIndex %d, raysxdeg %f", startIndex, rays_per_degree);
-		for(unsigned i = 0; i<180; i++)
-		{
-			step = int(rays_per_degree * i);
-			// calculate position in laser frame
-			if(startIndex+step > static_cast<int>(n)-1) // probably this is not necessary :/
-				step = step-1;
-			double r = scan_msg->ranges[startIndex+step]*1000.0;
-			if(r<10)
-				r = scan_msg->range_max *1000.0;
-			ROS_DEBUG("%d:%f\n",i,r);
-			m_laser_ranges[i*2][0] = r;
-			m_laser_ranges[i*2 + 1][0] = r;
-		}
-	}
-	else
-	{
-		for(unsigned i = 0; i<180; i++) // in case we are using SICK
-		{
-			// calculate position in laser frame
-			double r = scan_msg->ranges[i]*1000.0;
-			m_laser_ranges[i*2][0] = r;
-			m_laser_ranges[i*2 + 1][0] = r;
-		}
-	}
+	VFH_Algorithm::convertScan(
+		scan->ranges,
+		scan->angle_min,
+		scan->angle_max,
+		scan->angle_increment,
+		scan->range_max,
+		this->m_laser_ranges);
 	this->update(desiredAngle);/* perform vfh+ */
 }
 void VFH_node::update(double const desiredAngle)

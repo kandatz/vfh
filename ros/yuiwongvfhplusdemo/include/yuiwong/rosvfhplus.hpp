@@ -23,9 +23,7 @@
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
 #include "yuiwong/vfhplus.hpp"
-class VFH_node
-{
-public:
+struct VFH_node {
 	VFH_node(ros::NodeHandle nh, ros::NodeHandle nh_private);
 	~VFH_node();
 	void update(double const desiredAngle);
@@ -52,7 +50,7 @@ private:
 	double m_weight_current_dir;
 	double m_robot_radius;
 	double m_robotVel;
- double m_laser_ranges[361][2];
+	double m_laser_ranges[361][2];
 	int chosen_speed,chosen_turnrate;
 	// ros
  ros::NodeHandle nh_;
@@ -60,7 +58,7 @@ private:
  ros::Subscriber scan_subscriber_;
  ros::Subscriber odom_subscriber_;
  ros::Publisher vel_publisher_;
- void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan_msg);
+	void scanCallback(sensor_msgs::LaserScanConstPtr const& scan);
 	void odomCallback(nav_msgs::OdometryConstPtr const& odom);
 	struct {
 		double angle;/* ::atan2(angularzVelocity, linearxVelocity) */

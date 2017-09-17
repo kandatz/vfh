@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
+/*#include <iostream>*/
 /**
 * VFH_Algorithm constructor
 * @param cell_size local map cell size
@@ -1071,4 +1072,52 @@ turnrate = -1 * GetMaxTurnrate( actual_speed );
 }
 //  speed and turnrate have been set for the calling function -- return.
 return(1);
+}
+void VFH_Algorithm::convertScan(
+	std::vector<float> const ranges,
+	double const angleMin,
+	double const angleMax,
+	double const angleIncrement,
+	double const rangeMax,
+	double result[361][2])
+{
+	size_t const n = ranges.size();
+	for (size_t i = 0; i < 361; ++i) {
+		result[i][0] = -1;
+	}
+	double const laserSpan = angleMax - angleMin;
+	/* FIXME: double compare */
+	if ((laserSpan > M_PI) || (n > 180)) {
+		/* in case we are using hokuyo */
+		int const startIndex = (-M_PI / 2 - angleMin) / angleIncrement;
+		double const raysPerDegree = (M_PI / 180.0) / angleIncrement;
+		/*std::cout << __func__ << " startIndex " << startIndex
+			<< " raysxdeg " << raysPerDegree << "\n";*/
+		int step;
+		double r;
+		for (unsigned i = 0; i < 180; ++i) {
+			step = static_cast<int>(raysPerDegree * i);
+			/* calculate position in laser frame */
+			if ((startIndex + step) > (static_cast<int>(n) - 1)) {
+				/* probably this is not necessary */
+				step = step - 1;
+			}
+			r = ranges[startIndex + step] * 1e3;
+			/* FIXME double compare */
+			if (r < 10.0) {
+				r = rangeMax * 1e3;
+			}
+			/*std::cout << i << ": " << r << "\n";*/
+			result[i * 2][0] = r;
+			result[i * 2 + 1][0] = r;
+		}
+	} else {
+		for (unsigned i = 0; i < 180; ++i) {
+			/* in case we are using sick */
+			/* calculate position in laser frame */
+			double const r = ranges[i] * 1e3;
+			result[i * 2][0] = r;
+			result[i * 2 + 1][0] = r;
+		}
+	}
 }
