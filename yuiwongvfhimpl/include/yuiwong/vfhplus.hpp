@@ -31,6 +31,7 @@ if ((result)->tv_usec < 0) {                                              \
 (result)->tv_usec += 1000000;                                           \
 }                                                                         \
 } while (0)
+namespace yuiwong {
 /** @brief Vector Field Histogram local navigation algorithm
 The vfh class implements the Vector Field Histogram Plus local
 navigation method by Ulrich and Borenstein.  VFH+ provides real-time
@@ -305,4 +306,5 @@ std::vector<int> Min_Turning_Radius;
 timeval last_update_time;
 int last_chosen_speed;
 };
+}
 #endif

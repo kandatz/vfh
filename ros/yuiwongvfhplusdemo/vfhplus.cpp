@@ -14,6 +14,8 @@
  * ======================================================================== */
 #include "yuiwong/rosvfhplus.hpp"
 #define DEG2RAD(a) ((a) * M_PI / 180.0)
+namespace yuiwong
+{
 VFH_node::VFH_node(ros::NodeHandle nh, ros::NodeHandle nh_private):
 nh_(nh), nh_private_(nh_private)
 {
@@ -149,12 +151,13 @@ void VFH_node::update(double const desiredAngle)
 		vel->linear.x,
 		vel->angular.z);
 }
+}
 int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "VFH");
 	ros::NodeHandle nh;
 	ros::NodeHandle nh_private("~");
-	VFH_node vfh_node(nh,nh_private);
+	yuiwong::VFH_node vfh_node(nh,nh_private);
 	ros::spin();
 	return 0;
 }

@@ -23,6 +23,7 @@
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
 #include "yuiwong/vfhplus.hpp"
+namespace yuiwong {
 struct VFH_node {
 	VFH_node(ros::NodeHandle nh, ros::NodeHandle nh_private);
 	~VFH_node();
@@ -65,4 +66,5 @@ private:
 		double stamp;
 	} desiredVelocity;
 };
+}
 #endif /* VFH_NODE_H_ */

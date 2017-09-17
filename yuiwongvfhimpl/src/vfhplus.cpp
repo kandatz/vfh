@@ -17,6 +17,8 @@
 #include <assert.h>
 #include <math.h>
 /*#include <iostream>*/
+namespace yuiwong
+{
 /**
 * VFH_Algorithm constructor
 * @param cell_size local map cell size
@@ -1170,4 +1172,5 @@ void VFH_Algorithm::convertScan(
 			result[i * 2 + 1][0] = r;
 		}
 	}
+}
 }
