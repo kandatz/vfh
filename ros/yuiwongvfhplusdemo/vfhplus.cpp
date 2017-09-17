@@ -56,13 +56,27 @@ nh_(nh), nh_private_(nh_private)
 		m_weight_current_dir = 1.0;				//double, weight current direction
 	if(!nh_private_.getParam("m_robot_radius", m_robot_radius))
 		m_robot_radius = 300.0;					// robot radius in mm
-	m_vfh = new Vfh(m_cell_size, m_window_diameter, m_sector_angle,
-			m_safety_dist_0ms, m_safety_dist_1ms, m_max_speed,
-			m_max_speed_narrow_opening, m_max_speed_wide_opening,
-			m_max_acceleration, m_min_turnrate, m_max_turnrate_0ms,
-			m_max_turnrate_1ms, m_min_turn_radius_safety_factor,
-			m_free_space_cutoff_0ms, m_obs_cutoff_0ms, m_free_space_cutoff_1ms,
-			m_obs_cutoff_1ms, m_weight_desired_dir, m_weight_current_dir);
+	Vfh::Param const param {
+		this->m_cell_size,
+		this->m_window_diameter,
+		this->m_sector_angle,
+		this->m_safety_dist_0ms,
+		this->m_safety_dist_1ms,
+		this->m_max_speed,
+		this->m_max_speed_narrow_opening,
+		this->m_max_speed_wide_opening,
+		this->m_max_acceleration,
+		this->m_min_turnrate, m_max_turnrate_0ms,
+		this->m_max_turnrate_1ms,
+		this->m_min_turn_radius_safety_factor,
+		this->m_free_space_cutoff_0ms,
+		this->m_obs_cutoff_0ms,
+		this->m_free_space_cutoff_1ms,
+		this->m_obs_cutoff_1ms,
+		this->m_weight_desired_dir,
+		this->m_weight_current_dir,
+	};
+	this->m_vfh = new Vfh(param);
 	m_vfh->SetRobotRadius(m_robot_radius);
 	m_vfh->Init();
 	this->desiredVelocity.angle = 0;
