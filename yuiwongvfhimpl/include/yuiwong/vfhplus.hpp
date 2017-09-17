@@ -153,8 +153,8 @@ weight_current_dir = 1.0
 ...
 @endverbatim
 */
-struct VFH_Algorithm {
-VFH_Algorithm( double cell_size,
+struct Vfh {
+Vfh( double cell_size,
 int window_diameter,
 int sector_angle,
 double safety_dist_0ms,
@@ -173,7 +173,7 @@ double free_space_cutoff_1ms,
 double obs_cutoff_1ms,
 double weight_desired_dir,
 double weight_current_dir );
-~VFH_Algorithm();
+~Vfh();
 	static std::array<double, 361> convertScan(
 		std::vector<float> const ranges,
 		double const angleMin,

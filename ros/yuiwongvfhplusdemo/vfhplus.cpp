@@ -56,7 +56,7 @@ nh_(nh), nh_private_(nh_private)
 		m_weight_current_dir = 1.0;				//double, weight current direction
 	if(!nh_private_.getParam("m_robot_radius", m_robot_radius))
 		m_robot_radius = 300.0;					// robot radius in mm
-	m_vfh = new VFH_Algorithm(m_cell_size, m_window_diameter, m_sector_angle,
+	m_vfh = new Vfh(m_cell_size, m_window_diameter, m_sector_angle,
 			m_safety_dist_0ms, m_safety_dist_1ms, m_max_speed,
 			m_max_speed_narrow_opening, m_max_speed_wide_opening,
 			m_max_acceleration, m_min_turnrate, m_max_turnrate_0ms,
@@ -121,7 +121,7 @@ void VFH_node::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 		return;
 	}
 	desiredAngle = this->desiredVelocity.angle;
-	VFH_Algorithm::convertScan(
+	Vfh::convertScan(
 		scan->ranges,
 		scan->angle_min,
 		scan->angle_max,

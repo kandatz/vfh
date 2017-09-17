@@ -20,7 +20,7 @@
 namespace yuiwong
 {
 /**
-* VFH_Algorithm constructor
+* Vfh constructor
 * @param cell_size local map cell size
 * @param window_diameter windows diameter
 * @param sector_angle sector angle
@@ -41,7 +41,7 @@ namespace yuiwong
 * @param weight_desired_dir weight of the desired direction
 * @param weight_current_dir weight of the current direction
 */
-VFH_Algorithm::VFH_Algorithm( double cell_size,
+Vfh::Vfh( double cell_size,
 int window_diameter,
 int sector_angle,
 double safety_dist_0ms,
@@ -101,7 +101,7 @@ NUM_CELL_SECTOR_TABLES = 20;
 /**
 * Class destructor
 */
-VFH_Algorithm::~VFH_Algorithm()
+Vfh::~Vfh()
 {
 if(this->Hist)
 delete[] Hist;
@@ -113,7 +113,7 @@ delete[] Last_Binary_Hist;
 * @param speed current speed
 * @return max turn rate
 */
-int VFH_Algorithm::GetMaxTurnrate( int speed )
+int Vfh::GetMaxTurnrate( int speed )
 {
 int val = ( MAX_TURNRATE_0MS - (int)(speed*( MAX_TURNRATE_0MS-MAX_TURNRATE_1MS )/1000.0) );
 if ( val < 0 )
@@ -124,7 +124,7 @@ return val;
 * Set the current max speed
 * @param max_speed current max speed
 */
-void VFH_Algorithm::SetCurrentMaxSpeed( int max_speed )
+void Vfh::SetCurrentMaxSpeed( int max_speed )
 {
 this->Current_Max_Speed = MIN( max_speed, this->MAX_SPEED );
 this->Min_Turning_Radius.resize( Current_Max_Speed+1 );
@@ -152,7 +152,7 @@ Min_Turning_Radius[x] = (int) ( ((dx / tan( dtheta ))*1000.0) * MIN_TURN_RADIUS_
 * @return the index speed
 */
 int
-VFH_Algorithm::Get_Speed_Index( int speed )
+Vfh::Get_Speed_Index( int speed )
 {
 int val = (int) floor(((double)speed/(double)Current_Max_Speed)*NUM_CELL_SECTOR_TABLES);
 if ( val >= NUM_CELL_SECTOR_TABLES )
@@ -167,7 +167,7 @@ return val;
 * @return the safety distance
 */
 int
-VFH_Algorithm::Get_Safety_Dist( int speed )
+Vfh::Get_Safety_Dist( int speed )
 {
 int val = (int) ( SAFETY_DIST_0MS + (int)(speed*( SAFETY_DIST_1MS-SAFETY_DIST_0MS )/1000.0) );
 if ( val < 0 )
@@ -183,7 +183,7 @@ return val;
 * @return the threshold
 */
 double
-VFH_Algorithm::Get_Binary_Hist_Low( int speed )
+Vfh::Get_Binary_Hist_Low( int speed )
 {
 return ( Binary_Hist_Low_0ms - (speed*( Binary_Hist_Low_0ms-Binary_Hist_Low_1ms )/1000.0) );
 }
@@ -195,7 +195,7 @@ return ( Binary_Hist_Low_0ms - (speed*( Binary_Hist_Low_0ms-Binary_Hist_Low_1ms 
 * @return the threshold
 */
 double
-VFH_Algorithm::Get_Binary_Hist_High( int speed )
+Vfh::Get_Binary_Hist_High( int speed )
 {
 return ( Binary_Hist_High_0ms - (speed*( Binary_Hist_High_0ms-Binary_Hist_High_1ms )/1000.0) );
 }
@@ -203,7 +203,7 @@ return ( Binary_Hist_High_0ms - (speed*( Binary_Hist_High_0ms-Binary_Hist_High_1
 * Start up the VFH+ algorithm
 * @return 1
 */
-int VFH_Algorithm::Init()
+int Vfh::Init()
 {
 int x, y, i;
 double plus_dir=0, neg_dir=0, plus_sector=0, neg_sector=0;
@@ -360,7 +360,7 @@ return(1);
 /**
 * Allocate the VFH+ memory
 */
-int VFH_Algorithm::VFH_Allocate()
+int Vfh::VFH_Allocate()
 {
 std::vector<double> temp_vec;
 std::vector<int> temp_vec3;
@@ -410,7 +410,7 @@ return(1);
 * @param chosen_turnrate the chosen turn rathe to drive the robot
 * @return 1
 */
-int VFH_Algorithm::update(
+int Vfh::update(
 	std::array<double, 361> const& laserRanges,
 	int current_speed,
 	double goal_direction,
@@ -520,7 +520,7 @@ return(1);
 * The robot going too fast, such does it overshoot before it can turn to the goal?
 * @return true if the robot cannot turn to the goal
 */
-bool VFH_Algorithm::Cant_Turn_To_Goal()
+bool Vfh::Cant_Turn_To_Goal()
 {
 // Calculate this by seeing if the goal is inside the blocked circles
 // (circles we can't enter because we're going too fast).  Radii set
@@ -562,7 +562,7 @@ return false;
 * @param a2 second angle
 * @return the difference
 */
-double VFH_Algorithm::Delta_Angle(int a1, int a2)
+double Vfh::Delta_Angle(int a1, int a2)
 {
 return(Delta_Angle((double)a1, (double)a2));
 }
@@ -572,7 +572,7 @@ return(Delta_Angle((double)a1, (double)a2));
 * @param a2 second angle
 * @return the difference
 */
-double VFH_Algorithm::Delta_Angle(double a1, double a2)
+double Vfh::Delta_Angle(double a1, double a2)
 {
 double diff;
 diff = a2 - a1;
@@ -589,7 +589,7 @@ return(diff);
 * @param angle2 second angle
 * @return the bisector angle
 */
-int VFH_Algorithm::Bisect_Angle(int angle1, int angle2)
+int Vfh::Bisect_Angle(int angle1, int angle2)
 {
 double a;
 int angle;
@@ -606,7 +606,7 @@ return(angle);
 * Select the candidate angle to decide the direction using the given weights
 * @return 1
 */
-int VFH_Algorithm::Select_Candidate_Angle()
+int Vfh::Select_Candidate_Angle()
 {
 unsigned int i;
 double weight, min_weight;
@@ -640,7 +640,7 @@ return(1);
 * Select the used direction
 * @return 1
 */
-int VFH_Algorithm::Select_Direction()
+int Vfh::Select_Direction()
 {
 int start, i, left;
 double angle, new_angle;
@@ -737,7 +737,7 @@ return(1);
 /**
 * Print the cells directions
 */
-void VFH_Algorithm::Print_Cells_Dir()
+void Vfh::Print_Cells_Dir()
 {
 int x, y;
 printf("\nCell Directions:\n");
@@ -752,7 +752,7 @@ printf("\n");
 /**
 * Print the cells magnitude
 */
-void VFH_Algorithm::Print_Cells_Mag()
+void Vfh::Print_Cells_Mag()
 {
 int x, y;
 printf("\nCell Magnitudes:\n");
@@ -767,7 +767,7 @@ printf("\n");
 /**
 * Print the cells distances
 */
-void VFH_Algorithm::Print_Cells_Dist()
+void Vfh::Print_Cells_Dist()
 {
 int x, y;
 printf("\nCell Distances:\n");
@@ -782,7 +782,7 @@ printf("\n");
 /**
 * Print the cells sectors
 */
-void VFH_Algorithm::Print_Cells_Sector()
+void Vfh::Print_Cells_Sector()
 {
 int x, y;
 unsigned int i;
@@ -804,7 +804,7 @@ printf("\n");
 /**
 * Print the cells enlargement angles
 */
-void VFH_Algorithm::Print_Cells_Enlargement_Angle()
+void Vfh::Print_Cells_Enlargement_Angle()
 {
 int x, y;
 printf("\nEnlargement Angles:\n");
@@ -819,7 +819,7 @@ printf("\n");
 /**
 * Print the histogram
 */
-void VFH_Algorithm::Print_Hist()
+void Vfh::Print_Hist()
 {
 int x;
 printf("Histogram:\n");
@@ -835,7 +835,7 @@ printf("\n\n");
 * @param speed robot speed
 * @return 1
 */
-int VFH_Algorithm::Calculate_Cells_Mag(
+int Vfh::Calculate_Cells_Mag(
 	std::array<double, 361> const& laserRanges, int speed )
 {
 int x, y;
@@ -898,7 +898,7 @@ return(1);
 * @param speed robot speed
 * @return 1
 */
-int VFH_Algorithm::Build_Primary_Polar_Histogram(
+int Vfh::Build_Primary_Polar_Histogram(
 	std::array<double, 361> const& laserRanges, int speed)
 {
 int x, y;
@@ -937,7 +937,7 @@ return(1);
 * @param speed robot speed
 * @return 1
 */
-int VFH_Algorithm::Build_Binary_Polar_Histogram( int speed )
+int Vfh::Build_Binary_Polar_Histogram( int speed )
 {
 int x;
 for(x=0;x<HIST_SIZE;x++) {
@@ -962,7 +962,7 @@ return(1);
 * @param speed robot speed
 * @return 1
 */
-int VFH_Algorithm::Build_Masked_Polar_Histogram(int speed)
+int Vfh::Build_Masked_Polar_Histogram(int speed)
 {
 int x, y;
 double center_x_right, center_x_left, center_y, dist_r, dist_l;
@@ -1042,7 +1042,7 @@ return(1);
 * @param actual_speed the current speed
 * @return 1
 */
-int VFH_Algorithm::Set_Motion( int &speed, int &turnrate, int actual_speed )
+int Vfh::Set_Motion( int &speed, int &turnrate, int actual_speed )
 {
 // This happens if all directions blocked, so just spin in place
 if (speed <= 0)
@@ -1078,7 +1078,7 @@ turnrate = -1 * GetMaxTurnrate( actual_speed );
 //  speed and turnrate have been set for the calling function -- return.
 return(1);
 }
-std::array<double, 361> VFH_Algorithm::convertScan(
+std::array<double, 361> Vfh::convertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
 	double const angleMax,
@@ -1125,7 +1125,7 @@ std::array<double, 361> VFH_Algorithm::convertScan(
 	}
 	return result;
 }
-void VFH_Algorithm::convertScan(
+void Vfh::convertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
 	double const angleMax,

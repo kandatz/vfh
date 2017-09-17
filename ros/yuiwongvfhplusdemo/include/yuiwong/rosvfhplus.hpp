@@ -29,7 +29,7 @@ struct VFH_node {
 	~VFH_node();
 	void update(double const desiredAngle);
 private:
-	VFH_Algorithm *m_vfh;
+	Vfh *m_vfh;
 	double m_cell_size;			// 100 mm
 	int m_window_diameter;		// cells
 	int m_sector_angle;			// in deg
