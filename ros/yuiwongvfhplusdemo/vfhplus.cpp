@@ -125,7 +125,7 @@ void VFH_node::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 		scan->angle_max,
 		scan->angle_increment,
 		scan->range_max,
-		this->m_laser_ranges);
+		this->laserRanges);
 	this->update(desiredAngle);/* perform vfh+ */
 }
 void VFH_node::update(double const desiredAngle)
@@ -133,7 +133,7 @@ void VFH_node::update(double const desiredAngle)
 	double const desiredDist = 100000.0;
 	double const currGoalDistanceTolerance = 250;
 	m_vfh->Update_VFH(
-		m_laser_ranges,
+		this->laserRanges,
 		(int)(m_robotVel),
 		(desiredAngle / M_PI * 180.0) + 90.0,
 		desiredDist, currGoalDistanceTolerance,

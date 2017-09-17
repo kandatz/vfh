@@ -408,13 +408,14 @@ return(1);
 * @param chosen_turnrate the chosen turn rathe to drive the robot
 * @return 1
 */
-int VFH_Algorithm::Update_VFH( double laser_ranges[361][2],
-int current_speed,
-double goal_direction,
-double goal_distance,
-double goal_distance_tolerance,
-int &chosen_speed,
-int &chosen_turnrate )
+int VFH_Algorithm::Update_VFH(
+	std::array<double, 361> const& laserRanges,
+	int current_speed,
+	double goal_direction,
+	double goal_distance,
+	double goal_distance_tolerance,
+	int &chosen_speed,
+	int &chosen_turnrate)
 {
 int print = 0;
 this->Desired_Angle = goal_direction;
@@ -453,7 +454,7 @@ diffSeconds = diff.tv_sec + ( (double)diff.tv_usec / 1000000 );
 last_update_time.tv_sec = now.tv_sec;
 last_update_time.tv_usec = now.tv_usec;
 //  printf("Update_VFH: Build_Primary_Polar_Histogram\n");
-if ( Build_Primary_Polar_Histogram(laser_ranges,current_pos_speed) == 0)
+if ( Build_Primary_Polar_Histogram(laserRanges,current_pos_speed) == 0)
 {
 // Something's inside our safety distance: brake hard and
 // turn on the spot
@@ -832,7 +833,8 @@ printf("\n\n");
 * @param speed robot speed
 * @return 1
 */
-int VFH_Algorithm::Calculate_Cells_Mag( double laser_ranges[361][2], int speed )
+int VFH_Algorithm::Calculate_Cells_Mag(
+	std::array<double, 361> const& laserRanges, int speed )
 {
 int x, y;
 double safeSpeed = (double) Get_Safety_Dist(speed);
@@ -859,7 +861,7 @@ for(y=0;y<(int)ceil(WINDOW_DIAMETER/2.0);y++)
 //    	                      r);
 // controllo se il laser passa attraverso la cella
 if ((Cell_Dist[x][y] + CELL_WIDTH / 2.0) >
-laser_ranges[(int)rint(Cell_Direction[x][y] * 2.0)][0])
+laserRanges[(int)rint(Cell_Direction[x][y] * 2.0)])
 {
 if ( Cell_Dist[x][y] < r && !(x==CENTER_X && y==CENTER_Y) )
 {
@@ -894,7 +896,8 @@ return(1);
 * @param speed robot speed
 * @return 1
 */
-int VFH_Algorithm::Build_Primary_Polar_Histogram( double laser_ranges[361][2], int speed )
+int VFH_Algorithm::Build_Primary_Polar_Histogram(
+	std::array<double, 361> const& laserRanges, int speed)
 {
 int x, y;
 unsigned int i;
@@ -904,7 +907,7 @@ int speed_index = Get_Speed_Index( speed );
 for(x=0;x<HIST_SIZE;x++) {
 Hist[x] = 0;
 }
-if ( Calculate_Cells_Mag( laser_ranges, speed ) == 0 )
+if ( Calculate_Cells_Mag( laserRanges, speed ) == 0 )
 {
 // set Hist to all blocked
 for(x=0;x<HIST_SIZE;x++) {
@@ -1072,6 +1075,53 @@ turnrate = -1 * GetMaxTurnrate( actual_speed );
 }
 //  speed and turnrate have been set for the calling function -- return.
 return(1);
+}
+std::array<double, 361> VFH_Algorithm::convertScan(
+	std::vector<float> const ranges,
+	double const angleMin,
+	double const angleMax,
+	double const angleIncrement,
+	double const rangeMax,
+	std::array<double, 361>& result)
+{
+	std::fill(result.begin(), result.end(), -1.0);
+	size_t const n = ranges.size();
+	double const laserSpan = angleMax - angleMin;
+	/* FIXME: double compare */
+	if ((laserSpan > M_PI) || (n > 180)) {
+		/* in case we are using hokuyo */
+		int const startIndex = (-M_PI / 2 - angleMin) / angleIncrement;
+		double const raysPerDegree = (M_PI / 180.0) / angleIncrement;
+		/*std::cout << __func__ << " startIndex " << startIndex
+			<< " raysxdeg " << raysPerDegree << "\n";*/
+		int step;
+		double r;
+		for (unsigned i = 0; i < 180; ++i) {
+			step = static_cast<int>(raysPerDegree * i);
+			/* calculate position in laser frame */
+			if ((startIndex + step) > (static_cast<int>(n) - 1)) {
+				/* probably this is not necessary */
+				step = step - 1;
+			}
+			r = ranges[startIndex + step] * 1e3;
+			/* FIXME double compare */
+			if (r < 10.0) {
+				r = rangeMax * 1e3;
+			}
+			/*std::cout << i << ": " << r << "\n";*/
+			result[i * 2] = r;
+			result[i * 2 + 1] = r;
+		}
+	} else {
+		for (unsigned i = 0; i < 180; ++i) {
+			/* in case we are using sick */
+			/* calculate position in laser frame */
+			double const r = ranges[i] * 1e3;
+			result[i * 2] = r;
+			result[i * 2 + 1] = r;
+		}
+	}
+	return result;
 }
 void VFH_Algorithm::convertScan(
 	std::vector<float> const ranges,

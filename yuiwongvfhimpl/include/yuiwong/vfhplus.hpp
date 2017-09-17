@@ -15,8 +15,9 @@
 #ifndef VFH_ALGORITHM_H
 #define VFH_ALGORITHM_H
 #include <sys/time.h>
-#include <vector>
 #include <stdio.h>
+#include <vector>
+#include <array>
 #ifndef MIN
 #define MIN(a,b) ((a < b) ? (a) : (b))
 #endif
@@ -172,6 +173,13 @@ double obs_cutoff_1ms,
 double weight_desired_dir,
 double weight_current_dir );
 ~VFH_Algorithm();
+	static std::array<double, 361> convertScan(
+		std::vector<float> const ranges,
+		double const angleMin,
+		double const angleMax,
+		double const angleIncrement,
+		double const rangeMax,
+		std::array<double, 361>& result);
 	static void convertScan(
 		std::vector<float> const ranges,
 		double const angleMin,
@@ -187,13 +195,14 @@ int Init();
 //  - goal_distance  in mm.
 //  - goal_distance_tolerance in mm.
 //
-int Update_VFH( double laser_ranges[361][2],
-int current_speed,
-double goal_direction,
-double goal_distance,
-double goal_distance_tolerance,
-int &chosen_speed,
-int &chosen_turnrate );
+int Update_VFH(
+	std::array<double, 361> const& laserRanges,
+	int current_speed,
+	double goal_direction,
+	double goal_distance,
+	double goal_distance_tolerance,
+	int &chosen_speed,
+	int &chosen_turnrate);
 // Get methods
 int   GetMinTurnrate() { return MIN_TURNRATE; }
 // Angle to goal, in degrees.  0deg is to our right.
@@ -220,9 +229,11 @@ double Delta_Angle(double a1, double a2);
 int Bisect_Angle(int angle1, int angle2);
 bool Cant_Turn_To_Goal();
 // Returns 0 if something got inside the safety distance, else 1.
-int Calculate_Cells_Mag( double laser_ranges[361][2], int speed );
+int Calculate_Cells_Mag(
+	std::array<double, 361> const& laserRanges, int speed);
 // Returns 0 if something got inside the safety distance, else 1.
-int Build_Primary_Polar_Histogram( double laser_ranges[361][2], int speed );
+int Build_Primary_Polar_Histogram(
+	std::array<double, 361> const& laserRanges, int speed);
 int Build_Binary_Polar_Histogram(int speed);
 int Build_Masked_Polar_Histogram(int speed);
 int Select_Candidate_Angle();
