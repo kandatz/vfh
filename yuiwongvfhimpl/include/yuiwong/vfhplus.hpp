@@ -102,27 +102,27 @@ travelling at 1 m/s.
 - max_turnrate_1ms (angle / sec)
 - Default: max_turnrate_0ms
 - The maximum allowable turnrate of the robot when travelling 1 m/s.
-- min_turn_radius_safety_factor (float)
+- min_turn_radius_safety_factor (double)
 - Default: 1.0
 - ?
-- free_space_cutoff_0ms (float)
+- free_space_cutoff_0ms (double)
 - Default: 2000000.0
 - Unitless value.  The higher the value, the closer the robot will
 get to obstacles before avoiding (while stopped).
-- free_space_cutoff_1ms (float)
+- free_space_cutoff_1ms (double)
 - Default: free_space_cutoff_0ms
 - Unitless value.  The higher the value, the closer the robot will
 get to obstacles before avoiding (while travelling at 1 m/s).
-- obs_cutoff_0ms (float)
+- obs_cutoff_0ms (double)
 - Default: free_space_cutoff_0ms
 - histogram threshold
-- obs_cutoff_1ms (float)
+- obs_cutoff_1ms (double)
 - Default: free_space_cutoff_1ms
 - histogram threshold
-- weight_desired_dir (float)
+- weight_desired_dir (double)
 - Default: 5.0
 - Bias for the robot to turn to move toward goal position.
-- weight_current_dir (float)
+- weight_current_dir (double)
 - Default: 3.0
 - Bias for the robot to continue moving in current direction of travel.
 @par Example
@@ -184,34 +184,34 @@ int Init();
 //
 int Update_VFH( double laser_ranges[361][2],
 int current_speed,
-float goal_direction,
-float goal_distance,
-float goal_distance_tolerance,
+double goal_direction,
+double goal_distance,
+double goal_distance_tolerance,
 int &chosen_speed,
 int &chosen_turnrate );
 // Get methods
 int   GetMinTurnrate() { return MIN_TURNRATE; }
 // Angle to goal, in degrees.  0deg is to our right.
-float GetDesiredAngle() { return Desired_Angle; }
-float GetPickedAngle() { return Picked_Angle; }
+double GetDesiredAngle() { return Desired_Angle; }
+double GetPickedAngle() { return Picked_Angle; }
 // Max Turnrate depends on speed
 int GetMaxTurnrate( int speed );
 int GetCurrentMaxSpeed() { return Current_Max_Speed; }
 // Set methods
-void SetRobotRadius( float robot_radius ) { this->ROBOT_RADIUS = robot_radius; }
+void SetRobotRadius( double robot_radius ) { this->ROBOT_RADIUS = robot_radius; }
 void SetMinTurnrate( int min_turnrate ) { MIN_TURNRATE = min_turnrate; }
 void SetCurrentMaxSpeed( int Current_Max_Speed );
 // The Histogram.
 // This is public so that monitoring tools can get at it; it shouldn't
 // be modified externally.
 // Sweeps in an anti-clockwise direction.
-float *Hist;
+double *Hist;
 void Print_Cells_Mag();
 private:
 // Functions
 int VFH_Allocate();
-float Delta_Angle(int a1, int a2);
-float Delta_Angle(float a1, float a2);
+double Delta_Angle(int a1, int a2);
+double Delta_Angle(double a1, double a2);
 int Bisect_Angle(int angle1, int angle2);
 bool Cant_Turn_To_Goal();
 // Returns 0 if something got inside the safety distance, else 1.
@@ -235,19 +235,19 @@ void Print_Hist();
 int Get_Speed_Index( int speed );
 // Returns the safety dist in mm for this speed.
 int Get_Safety_Dist( int speed );
-float Get_Binary_Hist_Low( int speed );
-float Get_Binary_Hist_High( int speed );
+double Get_Binary_Hist_Low( int speed );
+double Get_Binary_Hist_High( int speed );
 int GetTimeDouble(double* time);
 // Data
-float ROBOT_RADIUS;           // millimeters
+double ROBOT_RADIUS;           // millimeters
 int CENTER_X;                 // cells
 int CENTER_Y;                 // cells
 int HIST_SIZE;                // sectors (over 360deg)
-float CELL_WIDTH;             // millimeters
+double CELL_WIDTH;             // millimeters
 int WINDOW_DIAMETER;          // cells
 int SECTOR_ANGLE;             // degrees
-float SAFETY_DIST_0MS;        // millimeters
-float SAFETY_DIST_1MS;        // millimeters
+double SAFETY_DIST_0MS;        // millimeters
+double SAFETY_DIST_1MS;        // millimeters
 int Current_Max_Speed;        // mm/sec
 int MAX_SPEED;                // mm/sec
 int MAX_SPEED_NARROW_OPENING; // mm/sec
@@ -259,30 +259,30 @@ int NUM_CELL_SECTOR_TABLES;
 int MAX_TURNRATE_0MS;       // deg/sec
 int MAX_TURNRATE_1MS;       // deg/sec
 double MIN_TURN_RADIUS_SAFETY_FACTOR;
-float Binary_Hist_Low_0ms, Binary_Hist_High_0ms;
-float Binary_Hist_Low_1ms, Binary_Hist_High_1ms;
-float U1, U2;
-float Desired_Angle, Dist_To_Goal, Goal_Distance_Tolerance;
-float Picked_Angle, Last_Picked_Angle;
+double Binary_Hist_Low_0ms, Binary_Hist_High_0ms;
+double Binary_Hist_Low_1ms, Binary_Hist_High_1ms;
+double U1, U2;
+double Desired_Angle, Dist_To_Goal, Goal_Distance_Tolerance;
+double Picked_Angle, Last_Picked_Angle;
 int   Max_Speed_For_Picked_Angle;
 // Radius of dis-allowed circles, either side of the robot, which
 // we can't enter due to our minimum turning radius.
-float Blocked_Circle_Radius;
-std::vector<std::vector<float> > Cell_Direction;
-std::vector<std::vector<float> > Cell_Base_Mag;
-std::vector<std::vector<float> > Cell_Mag;
-std::vector<std::vector<float> > Cell_Dist;      // millimetres
-std::vector<std::vector<float> > Cell_Enlarge;
+double Blocked_Circle_Radius;
+std::vector<std::vector<double> > Cell_Direction;
+std::vector<std::vector<double> > Cell_Base_Mag;
+std::vector<std::vector<double> > Cell_Mag;
+std::vector<std::vector<double> > Cell_Dist;      // millimetres
+std::vector<std::vector<double> > Cell_Enlarge;
 // Cell_Sector[x][y] is a vector of indices to sectors that are effected if cell (x,y) contains
 // an obstacle.
 // Cell enlargement is taken into account.
 // Acess as: Cell_Sector[speed_index][x][y][sector_index]
 std::vector<std::vector<std::vector<std::vector<int> > > > Cell_Sector;
-std::vector<float> Candidate_Angle;
+std::vector<double> Candidate_Angle;
 std::vector<int> Candidate_Speed;
 double dist_eps;
 double ang_eps;
-float *Last_Binary_Hist;
+double *Last_Binary_Hist;
 // Minimum turning radius at different speeds, in millimeters
 std::vector<int> Min_Turning_Radius;
 // Keep track of last update, so we can monitor acceleration
