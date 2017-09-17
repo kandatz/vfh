@@ -408,7 +408,6 @@ void VfhPlus::update(
 	double& chosenLinearX,
 	double& chosenAngularZ)
 {
-	std::cout << "currentLinearX " << currentLinearX << "\n";
 	this->desiredDirection = RadianToDegree(goalDirection);
 	this->goaldist = goalDistance * 1e3;
 	this->goaldistTolerance = goalDistanceTolerance * 1e3;
