@@ -18,19 +18,6 @@
 #include <stdio.h>
 #include <vector>
 #include <array>
-#ifndef MIN
-#define MIN(a,b) ((a < b) ? (a) : (b))
-#endif
-#define DTOR(d) ((d) * M_PI / 180)
-#define TIMESUB(a, b, result) \
-do { \
-(result)->tv_sec = (a)->tv_sec - (b)->tv_sec; \
-(result)->tv_usec = (a)->tv_usec - (b)->tv_usec; \
-if ((result)->tv_usec < 0) { \
---(result)->tv_sec; \
-(result)->tv_usec += 1000000; \
-} \
-} while (0)
 namespace yuiwong {
 /** @brief Vector Field Histogram local navigation algorithm
 The vfh class implements the Vector Field Histogram Plus local
