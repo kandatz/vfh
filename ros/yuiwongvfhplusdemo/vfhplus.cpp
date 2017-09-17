@@ -137,7 +137,8 @@ void VfhPlusNode::update(double const desiredAngle)
 	this->vfh->update(
 		this->laserRanges,
 		0.3,//this->robotLinearX,
-		desiredAngle + (M_PI / 2.0),
+		//desiredAngle + (M_PI / 2.0),
+		desiredAngle,
 		desiredDist,
 		currGoalDistanceTolerance,
 		chosenLinearX,

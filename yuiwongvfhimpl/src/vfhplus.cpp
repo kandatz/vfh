@@ -408,7 +408,7 @@ void VfhPlus::update(
 	double& chosenLinearX,
 	double& chosenAngularZ)
 {
-	this->desiredDirection = RadianToDegree(goalDirection);
+	this->desiredDirection = RadianToDegree(goalDirection + (M_PI / 2.0));
 	this->goaldist = goalDistance * 1e3;
 	this->goaldistTolerance = goalDistanceTolerance * 1e3;
 	// Set currentPoseSpeed to the maximum of
@@ -431,10 +431,9 @@ void VfhPlus::update(
 	timeval now{ 0, 0 };
 	timeval diff;
 	double diffSeconds;
-	// assert(GlobalTime->GetTime(&now) == 0);
-	assert(gettimeofday(&now, 0) == 0);
+	::gettimeofday(&now, 0);
 	TIMESUB(&now, &lastUpdateTime, &diff);
-	diffSeconds = diff.tv_sec + ((double)diff.tv_usec / 1000000);
+	diffSeconds = diff.tv_sec + ((double)diff.tv_usec / 1e6);
 	lastUpdateTime.tv_sec = now.tv_sec;
 	lastUpdateTime.tv_usec = now.tv_usec;
 	// printf("update: buildPrimaryPolarHistogram\n");
@@ -462,12 +461,13 @@ void VfhPlus::update(
 		// acceleration,
 		// so better to just pick a small value this time, calculate properly
 		// next time.
-		speedIncr = 10;
+		//speedIncr = 10;
+		speedIncr = 1e-2;
 	} else {
 		speedIncr = MAX_ACCELERATION * diffSeconds * 1e-3;
 	}
-	if (DoubleCompare(::fabs(speedIncr), 1e-6) <= 0) {
-		speedIncr = 1e-6;
+	if (DoubleCompare(::fabs(speedIncr), 1e-4) <= 0) {
+		speedIncr = 1e-4;
 	}
 	if (cantTurnToGoal()) {
 		// The goal's too close -- we can't turn tightly enough to
