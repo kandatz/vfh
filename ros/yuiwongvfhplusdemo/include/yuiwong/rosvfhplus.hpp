@@ -2,7 +2,7 @@
  * This library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
  * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *(at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,13 +23,12 @@
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
 #include "yuiwong/vfhplus.hpp"
-#define DEG2RAD(a) ((a) * M_PI / 180.0)
 class VFH_node
 {
 public:
 	VFH_node(ros::NodeHandle nh, ros::NodeHandle nh_private);
 	~VFH_node();
-	void update();
+	void update(double const desiredAngle);
 private:
 	VFH_Algorithm *m_vfh;
 	double m_cell_size;			// 100 mm
@@ -53,15 +52,19 @@ private:
 	double m_weight_current_dir;
 	double m_robot_radius;
 	double m_robotVel;
-    double m_laser_ranges[361][2];
+ double m_laser_ranges[361][2];
 	int chosen_speed,chosen_turnrate;
 	// ros
-    ros::NodeHandle nh_;
-    ros::NodeHandle nh_private_;
-    ros::Subscriber scan_subscriber_;
-    ros::Subscriber odom_subscriber_;
-    ros::Publisher  vel_publisher_;
-    void scanCallback (const sensor_msgs::LaserScan::ConstPtr& scan_msg);
-    void odomCallback (const nav_msgs::Odometry::ConstPtr& odom_msg);
+ ros::NodeHandle nh_;
+ ros::NodeHandle nh_private_;
+ ros::Subscriber scan_subscriber_;
+ ros::Subscriber odom_subscriber_;
+ ros::Publisher vel_publisher_;
+ void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan_msg);
+	void odomCallback(nav_msgs::OdometryConstPtr const& odom);
+	struct {
+		double angle;/* ::atan2(angularzVelocity, linearxVelocity) */
+		double stamp;
+	} desiredVelocity;
 };
 #endif /* VFH_NODE_H_ */
