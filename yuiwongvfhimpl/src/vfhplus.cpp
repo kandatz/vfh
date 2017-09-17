@@ -392,8 +392,8 @@ return(1);
 }
 /**
  * @brief update the vfh+ state using the laser readings and the robot speed
- * @param laser_ranges the laser (or sonar) readings
- * @param current_speed the current robot speed
+ * @param laserRanges the laser (or sonar) readings, by convertScan
+ * @param currentLinearX the current robot linear x velocity, in meter/s
  * @param goal_direction the desired direction, in radian, 0 is to the right
  * @param goal_distance the desired distance, in meter
  * @param goal_distance_tolerance the distance tolerance from the goal, in
@@ -405,7 +405,7 @@ return(1);
  */
 void Vfh::update(
 	std::array<double, 361> const& laserRanges,
-	int current_speed,
+	double const currentLinearX,
 	double const goal_direction,
 	double const goal_distance,
 	double const goal_distance_tolerance,
@@ -421,10 +421,10 @@ void Vfh::update(
 	// beyond the actual speed.
 	// Ensure that this speed is positive.
 	int current_pos_speed;
-	if (current_speed < 0) {
+	if (DoubleCompare(currentLinearX) < 0) {
 		current_pos_speed = 0;
 	} else {
-		current_pos_speed = current_speed;
+		current_pos_speed = currentLinearX * 1e3;
 	} if (current_pos_speed < last_chosen_speed) {
 		current_pos_speed = last_chosen_speed;
 	}

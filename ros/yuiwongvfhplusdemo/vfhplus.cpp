@@ -109,7 +109,7 @@ VFH_node::~VFH_node()
 }
 void VFH_node::odomCallback(nav_msgs::OdometryConstPtr const& odom)
 {
-	m_robotVel = odom->twist.twist.linear.x * 1000.0;
+	this->robotLinearX = odom->twist.twist.linear.x;
 	double const yaw = ::atan2(
 		odom->twist.twist.angular.z, odom->twist.twist.linear.x);
 	ROS_INFO_STREAM("odomCallback " << yaw);
@@ -150,7 +150,7 @@ void VFH_node::update(double const desiredAngle)
 	double chosenLinearX, chosenAngularZ;
 	m_vfh->update(
 		this->laserRanges,
-		(int)(m_robotVel),
+		this->robotLinearX,
 		desiredAngle + (M_PI / 2.0),
 		desiredDist,
 		currGoalDistanceTolerance,

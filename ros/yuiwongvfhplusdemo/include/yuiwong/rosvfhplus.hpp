@@ -50,7 +50,7 @@ private:
 	double m_weight_desired_dir;
 	double m_weight_current_dir;
 	double robot_radius;
-	double m_robotVel;
+	double robotLinearX;/* meter/s */
 	std::array<double, 361> laserRanges;
 	// ros
  ros::NodeHandle nh_;

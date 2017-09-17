@@ -183,21 +183,22 @@ struct Vfh {
 	/**
 	 * @brief update the vfh+ state using the laser readings and the robot
 	 * speed
-	 * @param laser_ranges the laser (or sonar) readings
-	 * @param current_speed the current robot speed
-	 * @param goal_direction the desired direction, in radian, 0 is to the
-	 * right
+	 * @param laserRanges the laser (or sonar) readings, by convertScan
+	 * @param currentLinearX the current robot linear x velocity, in meter/s
+	 * @param goal_direction the desired direction, in radian,
+	 * 0 is to the right
 	 * @param goal_distance the desired distance, in meter
-	 * @param goal_distance_tolerance the distance tolerance from the goal,
-	 * in meter
+	 * @param goal_distance_tolerance the distance tolerance from the goal, in
+	 * meter
 	 * @param[out] chosenLinearX the chosen linear x velocity to drive the
-	 * robot, in meter/s
-	 * @param[out] chosenAngularZ the chosen turn rathe to drive the robot,
-	 * in radian/s
+	 * robot,
+	 * in meter/s
+	 * @param[out] chosenAngularZ the chosen turn rathe to drive the robot, in
+	 * radian/s
 	 */
 	void update(
 		std::array<double, 361> const& laserRanges,
-		int current_speed,
+		double const currentLinearX,
 		double const goal_direction,
 		double const goal_distance,
 		double const goal_distance_tolerance,
