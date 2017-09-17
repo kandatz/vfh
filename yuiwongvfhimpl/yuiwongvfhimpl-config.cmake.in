@@ -1,0 +1,3 @@
+#include(CMakeFindDependencyMacro)
+set(yuiwongvfhimpl_INCLUDE_DIRS "@yuiwongvfhimpl_INCLUDE_DIRS@")
+set(yuiwongvfhimpl_LIBRARIES "@yuiwongvfhimpl_LIBRARIES@")
