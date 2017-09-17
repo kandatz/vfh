@@ -76,10 +76,10 @@ Vfh::Vfh(Param const& param):
 	Binary_Hist_High_1ms(param.obs_cutoff_1ms),
 	U1(param.weight_desired_dir),
 	U2(param.weight_current_dir),
-	Desired_Angle(90),
-	Picked_Angle(90),
-	Last_Picked_Angle(Picked_Angle),
-	last_chosen_speed(0)
+	desiredDirection(90),
+	pickedDirection(90),
+	lastPickedDirection(pickedDirection),
+	lastChosenSpeed(0)
 {
 this->Last_Binary_Hist = NULL;
 this->Hist = NULL;
@@ -346,7 +346,7 @@ void Vfh::init()
 	}
 	}
 	}
-	gettimeofday(&last_update_time,0);
+	gettimeofday(&lastUpdateTime,0);
 }
 /**
 * Allocate the VFH+ memory
@@ -394,9 +394,9 @@ return(1);
  * @brief update the vfh+ state using the laser readings and the robot speed
  * @param laserRanges the laser (or sonar) readings, by convertScan
  * @param currentLinearX the current robot linear x velocity, in meter/s
- * @param goal_direction the desired direction, in radian, 0 is to the right
- * @param goal_distance the desired distance, in meter
- * @param goal_distance_tolerance the distance tolerance from the goal, in
+ * @param goalDirection the desired direction, in radian, 0 is to the right
+ * @param goalDistance the desired distance, in meter
+ * @param goalDistanceTolerance the distance tolerance from the goal, in
  * meter
  * @param[out] chosenLinearX the chosen linear x velocity to drive the robot,
  * in meter/s
@@ -406,29 +406,29 @@ return(1);
 void Vfh::update(
 	std::array<double, 361> const& laserRanges,
 	double const currentLinearX,
-	double const goal_direction,
-	double const goal_distance,
-	double const goal_distance_tolerance,
+	double const goalDirection,
+	double const goalDistance,
+	double const goalDistanceTolerance,
 	double& chosenLinearX,
 	double& chosenAngularZ)
 {
-	this->Desired_Angle = RadianToDegree(goal_direction);
-	this->Dist_To_Goal = goal_distance * 1e3;
-	this->Goal_Distance_Tolerance = goal_distance_tolerance * 1e3;
-	// Set current_pos_speed to the maximum of
-	// the set point (last_chosen_speed) and the current actual speed.
+	this->desiredDirection = RadianToDegree(goalDirection);
+	this->goaldist = goalDistance * 1e3;
+	this->goaldistTolerance = goalDistanceTolerance * 1e3;
+	// Set currentPoseSpeed to the maximum of
+	// the set point (lastChosenSpeed) and the current actual speed.
 	// This ensures conservative behaviour if the set point somehow ramps up
 	// beyond the actual speed.
 	// Ensure that this speed is positive.
-	int current_pos_speed;
+	int currentPoseSpeed;
 	if (DoubleCompare(currentLinearX) < 0) {
-		current_pos_speed = 0;
+		currentPoseSpeed = 0;
 	} else {
-		current_pos_speed = currentLinearX * 1e3;
-	} if (current_pos_speed < last_chosen_speed) {
-		current_pos_speed = last_chosen_speed;
+		currentPoseSpeed = currentLinearX * 1e3;
+	} if (currentPoseSpeed < lastChosenSpeed) {
+		currentPoseSpeed = lastChosenSpeed;
 	}
-	// printf("update: current_pos_speed = %d\n",current_pos_speed);
+	// printf("update: currentPoseSpeed = %d\n",currentPoseSpeed);
 	// Work out how much time has elapsed since the last update,
 	// so we know how much to increase speed by, given MAX_ACCELERATION.
 	timeval now{ 0, 0 };
@@ -436,27 +436,28 @@ void Vfh::update(
 	double diffSeconds;
 	// assert(GlobalTime->GetTime(&now) == 0);
 	assert(gettimeofday(&now, 0) == 0);
-	TIMESUB(&now, &last_update_time, &diff);
+	TIMESUB(&now, &lastUpdateTime, &diff);
 	diffSeconds = diff.tv_sec + ((double)diff.tv_usec / 1000000);
-	last_update_time.tv_sec = now.tv_sec;
-	last_update_time.tv_usec = now.tv_usec;
-	// printf("update: Build_Primary_Polar_Histogram\n");
-	if (Build_Primary_Polar_Histogram(laserRanges,current_pos_speed) == 0) {
+	lastUpdateTime.tv_sec = now.tv_sec;
+	lastUpdateTime.tv_usec = now.tv_usec;
+	// printf("update: buildPrimaryPolarHistogram\n");
+	if (buildPrimaryPolarHistogram(laserRanges,currentPoseSpeed) == 0) {
 		// Something's inside our safety distance: brake hard and
 		// turn on the spot
-		Picked_Angle = Last_Picked_Angle;
-		Max_Speed_For_Picked_Angle = 0;
-		Last_Picked_Angle = Picked_Angle;
+		pickedDirection = lastPickedDirection;
+		maxSpeedForPickedDirection = 0;
+		lastPickedDirection = pickedDirection;
 	} else {
-		Build_Binary_Polar_Histogram(current_pos_speed);
-		Build_Masked_Polar_Histogram(current_pos_speed);
-		// Sets Picked_Angle, Last_Picked_Angle, and Max_Speed_For_Picked_Angle
-		Select_Direction();
+		buildBinaryPolarHistogram(currentPoseSpeed);
+		buildMaskedPolarHistogram(currentPoseSpeed);
+		// Sets pickedDirection, lastPickedDirection,
+		// and maxSpeedForPickedDirection
+		selectDirection();
 	}
-	// printf("Picked Angle: %f\n", Picked_Angle);
+	// printf("Picked Angle: %f\n", pickedDirection);
 	// OK, so now we've chosen a direction. Time to choose a speed.
 	// How much can we change our speed by?
-	int speed_incr;
+	int speedIncr;
 	if ((diffSeconds > 0.3) || (diffSeconds < 0)) {
 		// Either this is the first time we've been updated, or something's
 		// a bit screwy and
@@ -464,38 +465,38 @@ void Vfh::update(
 		// acceleration,
 		// so better to just pick a small value this time, calculate properly
 		// next time.
-		speed_incr = 10;
+		speedIncr = 10;
 	} else {
-		speed_incr = (int) (MAX_ACCELERATION * diffSeconds);
+		speedIncr = (int) (MAX_ACCELERATION * diffSeconds);
 	}
-	if (Cant_Turn_To_Goal()) {
+	if (cantTurnToGoal()) {
 		// The goal's too close -- we can't turn tightly enough to
 		// get to it, so slow down...
-		speed_incr = -speed_incr;
+		speedIncr = -speedIncr;
 	}
-	// Accelerate (if we're not already at Max_Speed_For_Picked_Angle).
+	// Accelerate (if we're not already at maxSpeedForPickedDirection).
 	int chosenSpeed = MIN(
-		last_chosen_speed + speed_incr, Max_Speed_For_Picked_Angle);
-	// printf("Max Speed for picked angle: %d\n",Max_Speed_For_Picked_Angle);
+		lastChosenSpeed + speedIncr, maxSpeedForPickedDirection);
+	// printf("Max Speed for picked angle: %d\n",maxSpeedForPickedDirection);
 	// Set the chosen_turnrate, and possibly modify the chosen_speed
 	int chosenTurnrate = 0;
-	Set_Motion(chosenSpeed, chosenTurnrate, current_pos_speed);
+	Set_Motion(chosenSpeed, chosenTurnrate, currentPoseSpeed);
 	chosenLinearX = chosenSpeed * 1e-3;
 	chosenAngularZ = NormalizeAngle(DegreeToRadian(chosenTurnrate));
-	last_chosen_speed = chosenSpeed;
+	lastChosenSpeed = chosenSpeed;
 }
 /**
 * The robot going too fast, such does it overshoot before it can turn to the goal?
 * @return true if the robot cannot turn to the goal
 */
-bool Vfh::Cant_Turn_To_Goal()
+bool Vfh::cantTurnToGoal()
 {
 // Calculate this by seeing if the goal is inside the blocked circles
 // (circles we can't enter because we're going too fast). Radii set
-// by Build_Masked_Polar_Histogram.
+// by buildMaskedPolarHistogram.
 // Coords of goal in local coord system:
-double goal_x = this->Dist_To_Goal * cos(DTOR(this->Desired_Angle));
-double goal_y = this->Dist_To_Goal * sin(DTOR(this->Desired_Angle));
+double goal_x = this->goaldist * cos(DTOR(this->desiredDirection));
+double goal_y = this->goaldist * sin(DTOR(this->desiredDirection));
 // AlexB: Is this useful?
 // if (goal_y < 0)
 // {
@@ -505,19 +506,19 @@ double goal_y = this->Dist_To_Goal * sin(DTOR(this->Desired_Angle));
 // This is the distance between the centre of the goal and
 // the centre of the blocked circle
 double dist_between_centres;
-// printf("Cant_Turn_To_Goal: Dist_To_Goal = %f\n",Dist_To_Goal);
-// printf("Cant_Turn_To_Goal: Angle_To_Goal = %f\n",Desired_Angle);
-// printf("Cant_Turn_To_Goal: Blocked_Circle_Radius = %f\n",Blocked_Circle_Radius);
+// printf("cantTurnToGoal: goaldist = %f\n",goaldist);
+// printf("cantTurnToGoal: Angle_To_Goal = %f\n",desiredDirection);
+// printf("cantTurnToGoal: Blocked_Circle_Radius = %f\n",Blocked_Circle_Radius);
 // right circle
 dist_between_centres = hypot(goal_x - this->Blocked_Circle_Radius, goal_y);
-if (dist_between_centres+this->Goal_Distance_Tolerance < this->Blocked_Circle_Radius)
+if (dist_between_centres+this->goaldistTolerance < this->Blocked_Circle_Radius)
 {
 // printf("Goal close & right\n");
 return true;
 }
 // left circle
 dist_between_centres = hypot(-goal_x - this->Blocked_Circle_Radius, goal_y);
-if (dist_between_centres+this->Goal_Distance_Tolerance < this->Blocked_Circle_Radius)
+if (dist_between_centres+this->goaldistTolerance < this->Blocked_Circle_Radius)
 {
 // printf("Goal close & left.\n");
 return true;
@@ -569,33 +570,33 @@ if (Candidate_Angle.size() == 0)
 {
 // We're hemmed in by obstacles -- nowhere to go,
 // so brake hard and turn on the spot.
-Picked_Angle = Last_Picked_Angle;
-Max_Speed_For_Picked_Angle = 0;
-Last_Picked_Angle = Picked_Angle;
+pickedDirection = lastPickedDirection;
+maxSpeedForPickedDirection = 0;
+lastPickedDirection = pickedDirection;
 return(1);
 }
-Picked_Angle = 90;
+pickedDirection = 90;
 min_weight = 10000000;
 for(i = 0;i<Candidate_Angle.size();i++)
 {
 //printf("CANDIDATE: %f\n", Candidate_Angle[i]);
-weight = U1 * fabs(deltaAngle(Desired_Angle, Candidate_Angle[i])) +
-U2 * fabs(deltaAngle(Last_Picked_Angle, Candidate_Angle[i]));
+weight = U1 * fabs(deltaAngle(desiredDirection, Candidate_Angle[i])) +
+U2 * fabs(deltaAngle(lastPickedDirection, Candidate_Angle[i]));
 if (weight < min_weight)
 {
 min_weight = weight;
-Picked_Angle = Candidate_Angle[i];
-Max_Speed_For_Picked_Angle = Candidate_Speed[i];
+pickedDirection = Candidate_Angle[i];
+maxSpeedForPickedDirection = Candidate_Speed[i];
 }
 }
-Last_Picked_Angle = Picked_Angle;
+lastPickedDirection = pickedDirection;
 return(1);
 }
 /**
 * Select the used direction
 * @return 1
 */
-int Vfh::Select_Direction()
+int Vfh::selectDirection()
 {
 int start, i, left;
 double angle, new_angle;
@@ -618,11 +619,11 @@ break;
 }
 if (start == -1)
 {
-Picked_Angle = Desired_Angle;
-Last_Picked_Angle = Picked_Angle;
-Max_Speed_For_Picked_Angle = Current_Max_Speed;
+pickedDirection = desiredDirection;
+lastPickedDirection = pickedDirection;
+maxSpeedForPickedDirection = Current_Max_Speed;
 // printf("No obstacles detected in front of us: full speed towards goal: %f, %f, %d\n",
-// 		 Picked_Angle, Last_Picked_Angle, Max_Speed_For_Picked_Angle);
+// 		 pickedDirection, lastPickedDirection, maxSpeedForPickedDirection);
 return(1);
 }
 //
@@ -679,9 +680,9 @@ new_angle += 360;
 Candidate_Angle.push_back(new_angle);
 Candidate_Speed.push_back(MIN(Current_Max_Speed,MAX_SPEED_WIDE_OPENING));
 // See if candidate dir is in this opening
-if ((deltaAngle(Desired_Angle, Candidate_Angle[Candidate_Angle.size()-2]) < 0) &&
-(deltaAngle(Desired_Angle, Candidate_Angle[Candidate_Angle.size()-1]) > 0)) {
-Candidate_Angle.push_back(Desired_Angle);
+if ((deltaAngle(desiredDirection, Candidate_Angle[Candidate_Angle.size()-2]) < 0) &&
+(deltaAngle(desiredDirection, Candidate_Angle[Candidate_Angle.size()-1]) > 0)) {
+Candidate_Angle.push_back(desiredDirection);
 Candidate_Speed.push_back(MIN(Current_Max_Speed,MAX_SPEED_WIDE_OPENING));
 }
 }
@@ -853,14 +854,14 @@ return(1);
 * @param speed robot speed
 * @return 1
 */
-int Vfh::Build_Primary_Polar_Histogram(
+int Vfh::buildPrimaryPolarHistogram(
 	std::array<double, 361> const& laserRanges, int speed)
 {
 int x, y;
 unsigned int i;
 // index into the vector of Cell_Sector tables
 int speed_index = Get_Speed_Index(speed);
-// printf("Build_Primary_Polar_Histogram: speed_index %d %d\n", speed_index, HIST_SIZE);
+// printf("buildPrimaryPolarHistogram: speed_index %d %d\n", speed_index, HIST_SIZE);
 for(x = 0;x<HIST_SIZE;x++) {
 Hist[x] = 0;
 }
@@ -892,7 +893,7 @@ return(1);
 * @param speed robot speed
 * @return 1
 */
-int Vfh::Build_Binary_Polar_Histogram(int speed)
+int Vfh::buildBinaryPolarHistogram(int speed)
 {
 int x;
 for(x = 0;x<HIST_SIZE;x++) {
@@ -917,7 +918,7 @@ return(1);
 * @param speed robot speed
 * @return 1
 */
-int Vfh::Build_Masked_Polar_Histogram(int speed)
+int Vfh::buildMaskedPolarHistogram(int speed)
 {
 int x, y;
 double center_x_right, center_x_left, center_y, dist_r, dist_l;
@@ -1008,17 +1009,17 @@ speed = 0;
 }
 else
 {
-// printf("Picked %f\n", Picked_Angle);
-if ((Picked_Angle > 270) && (Picked_Angle < 360)) {
+// printf("Picked %f\n", pickedDirection);
+if ((pickedDirection > 270) && (pickedDirection < 360)) {
 turnrate = -1 * GetMaxTurnrate(actual_speed);
-} else if ((Picked_Angle < 270) && (Picked_Angle > 180)) {
+} else if ((pickedDirection < 270) && (pickedDirection > 180)) {
 turnrate = GetMaxTurnrate(actual_speed);
 } else {
-turnrate = (int)rint(((double)(Picked_Angle - 90) / 75.0) * GetMaxTurnrate(actual_speed));
-// 	turnrate = (int)rint(((double)(Picked_Angle) / 75.0) * GetMaxTurnrate(actual_speed));
-// printf("GetMaxTurnrate(actual_speed): %d, Picked_Angle: %f, turnrate %d\n",
+turnrate = (int)rint(((double)(pickedDirection - 90) / 75.0) * GetMaxTurnrate(actual_speed));
+// 	turnrate = (int)rint(((double)(pickedDirection) / 75.0) * GetMaxTurnrate(actual_speed));
+// printf("GetMaxTurnrate(actual_speed): %d, pickedDirection: %f, turnrate %d\n",
 // 		 GetMaxTurnrate(actual_speed),
-// 		 Picked_Angle,
+// 		 pickedDirection,
 // 		 turnrate);
 if (turnrate > GetMaxTurnrate(actual_speed)) {
 turnrate = GetMaxTurnrate(actual_speed);

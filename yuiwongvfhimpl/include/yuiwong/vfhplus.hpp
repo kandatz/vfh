@@ -185,10 +185,10 @@ struct Vfh {
 	 * speed
 	 * @param laserRanges the laser (or sonar) readings, by convertScan
 	 * @param currentLinearX the current robot linear x velocity, in meter/s
-	 * @param goal_direction the desired direction, in radian,
+	 * @param goalDirection the desired direction, in radian,
 	 * 0 is to the right
-	 * @param goal_distance the desired distance, in meter
-	 * @param goal_distance_tolerance the distance tolerance from the goal, in
+	 * @param goalDistance the desired distance, in meter
+	 * @param goalDistanceTolerance the distance tolerance from the goal, in
 	 * meter
 	 * @param[out] chosenLinearX the chosen linear x velocity to drive the
 	 * robot,
@@ -199,16 +199,16 @@ struct Vfh {
 	void update(
 		std::array<double, 361> const& laserRanges,
 		double const currentLinearX,
-		double const goal_direction,
-		double const goal_distance,
-		double const goal_distance_tolerance,
+		double const goalDirection,
+		double const goalDistance,
+		double const goalDistanceTolerance,
 		double& chosenLinearX,
 		double& chosenAngularZ);
 // Get methods
 int GetMinTurnrate() { return MIN_TURNRATE; }
 // Angle to goal, in degrees. 0deg is to our right.
-double GetDesiredAngle() { return Desired_Angle; }
-double GetPickedAngle() { return Picked_Angle; }
+double GetDesiredAngle() { return desiredDirection; }
+double GetPickedAngle() { return pickedDirection; }
 // Max Turnrate depends on speed
 int GetMaxTurnrate(int speed);
 int GetCurrentMaxSpeed() { return Current_Max_Speed; }
@@ -241,17 +241,17 @@ double deltaAngle(int a1, int a2);
 	 * @return the bisector angle [-360, 360)
 	 */
 	static int bisectAngle(int const angle1, int const angle2);
-bool Cant_Turn_To_Goal();
+	bool cantTurnToGoal();
 // Returns 0 if something got inside the safety distance, else 1.
 int Calculate_Cells_Mag(
 	std::array<double, 361> const& laserRanges, int speed);
 // Returns 0 if something got inside the safety distance, else 1.
-int Build_Primary_Polar_Histogram(
+int buildPrimaryPolarHistogram(
 	std::array<double, 361> const& laserRanges, int speed);
-int Build_Binary_Polar_Histogram(int speed);
-int Build_Masked_Polar_Histogram(int speed);
+int buildBinaryPolarHistogram(int speed);
+int buildMaskedPolarHistogram(int speed);
 int Select_Candidate_Angle();
-int Select_Direction();
+int selectDirection();
 int Set_Motion(int &speed, int &turnrate, int current_speed);
 // AB: This doesn't seem to be implemented anywhere...
 // int Read_Min_Turning_Radius_From_File(char *filename);
@@ -292,9 +292,9 @@ double MIN_TURN_RADIUS_SAFETY_FACTOR;
 double Binary_Hist_Low_0ms, Binary_Hist_High_0ms;
 double Binary_Hist_Low_1ms, Binary_Hist_High_1ms;
 double U1, U2;
-double Desired_Angle, Dist_To_Goal, Goal_Distance_Tolerance;
-double Picked_Angle, Last_Picked_Angle;
-int Max_Speed_For_Picked_Angle;
+	double desiredDirection, goaldist, goaldistTolerance;
+double pickedDirection, lastPickedDirection;
+int maxSpeedForPickedDirection;
 // Radius of dis-allowed circles, either side of the robot, which
 // we can't enter due to our minimum turning radius.
 double Blocked_Circle_Radius;
@@ -315,9 +315,9 @@ double ang_eps;
 double *Last_Binary_Hist;
 // Minimum turning radius at different speeds, in millimeters
 std::vector<int> Min_Turning_Radius;
-// Keep track of last update, so we can monitor acceleration
-timeval last_update_time;
-int last_chosen_speed;
+	// Keep track of last update, so we can monitor acceleration
+	timeval lastUpdateTime;
+	int lastChosenSpeed;
 };
 }
 #endif
