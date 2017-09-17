@@ -1066,8 +1066,7 @@ std::array<double, 361> Vfh::convertScan(
 	std::fill(result.begin(), result.end(), -1.0);
 	size_t const n = ranges.size();
 	double const laserSpan = angleMax - angleMin;
-	/* FIXME: double compare */
-	if ((laserSpan > M_PI) || (n > 180)) {
+	if ((DoubleCompare(laserSpan, M_PI) > 0) || (n > 180)) {
 		/* in case we are using hokuyo */
 		int const startIndex = (-M_PI / 2 - angleMin) / angleIncrement;
 		double const raysPerDegree = (M_PI / 180.0) / angleIncrement;
@@ -1083,8 +1082,7 @@ std::array<double, 361> Vfh::convertScan(
 				step = step - 1;
 			}
 			r = ranges[startIndex + step] * 1e3;
-			/* FIXME double compare */
-			if (r < 10.0) {
+			if (DoubleCompare(r, 10.0) < 0) {
 				r = rangeMax * 1e3;
 			}
 			/*std::cout << i << ": " << r << "\n";*/
@@ -1115,8 +1113,7 @@ void Vfh::convertScan(
 		result[i][0] = -1;
 	}
 	double const laserSpan = angleMax - angleMin;
-	/* FIXME: double compare */
-	if ((laserSpan > M_PI) || (n > 180)) {
+	if ((DoubleCompare(laserSpan, M_PI) > 0) || (n > 180)) {
 		/* in case we are using hokuyo */
 		int const startIndex = (-M_PI / 2 - angleMin) / angleIncrement;
 		double const raysPerDegree = (M_PI / 180.0) / angleIncrement;
@@ -1132,8 +1129,7 @@ void Vfh::convertScan(
 				step = step - 1;
 			}
 			r = ranges[startIndex + step] * 1e3;
-			/* FIXME double compare */
-			if (r < 10.0) {
+			if (DoubleCompare(r, 10.0) < 0) {
 				r = rangeMax * 1e3;
 			}
 			/*std::cout << i << ": " << r << "\n";*/
