@@ -29,7 +29,7 @@ struct VFH_node {
 	~VFH_node();
 	void update(double const desiredAngle);
 private:
-	Vfh *m_vfh;
+	boost::shared_ptr<Vfh> vfh;
 	double m_cell_size;			// 100 mm
 	int m_window_diameter;		// cells
 	int m_sector_angle;			// in deg
@@ -53,11 +53,11 @@ private:
 	double robotLinearX;/* meter/s */
 	std::array<double, 361> laserRanges;
 	// ros
- ros::NodeHandle nh_;
- ros::NodeHandle nh_private_;
- ros::Subscriber scan_subscriber_;
- ros::Subscriber odom_subscriber_;
- ros::Publisher vel_publisher_;
+	ros::NodeHandle nh_;
+	ros::NodeHandle nh_private_;
+	ros::Subscriber scan_subscriber_;
+	ros::Subscriber odom_subscriber_;
+	ros::Publisher vel_publisher_;
 	void scanCallback(sensor_msgs::LaserScanConstPtr const& scan);
 	void odomCallback(nav_msgs::OdometryConstPtr const& odom);
 	struct {

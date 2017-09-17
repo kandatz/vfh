@@ -75,9 +75,9 @@ nh_(nh), nh_private_(nh_private)
 		this->m_weight_desired_dir,
 		this->m_weight_current_dir,
 	};
-	this->m_vfh = new Vfh(param);
-	m_vfh->setRobotRadius(robot_radius);
-	m_vfh->init();
+	this->vfh = boost::make_shared<Vfh>(param);
+	this->vfh->setRobotRadius(robot_radius);
+	this->vfh->init();
 	this->desiredVelocity.angle = 0;
 	this->desiredVelocity.stamp = 0;
 	// subscribe to topics
@@ -96,16 +96,20 @@ nh_(nh), nh_private_(nh_private)
 	odom_subscriber_ = this->nh_.subscribe(
 		odomTopic, 1, &VFH_node::odomCallback, this);
 	// cmd_vel publisher
-	vel_publisher_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel",5);
+	std::string t("");
+	this->nh_private_.param<std::string>("topic", t, "/cmd_vel");
+	this->vel_publisher_ = this->nh_.advertise<geometry_msgs::Twist>(
+		t, sizeof(size_t));
 }
 VFH_node::~VFH_node()
 {
+	this->scan_subscriber_.shutdown();
+	this->odom_subscriber_.shutdown();
 	// stop the robot
 	geometry_msgs::Twist cmd_vel;
 	cmd_vel.linear.x = 0.0;
 	cmd_vel.angular.z = 0.0;
 	vel_publisher_.publish(cmd_vel);
-	delete m_vfh;
 }
 void VFH_node::odomCallback(nav_msgs::OdometryConstPtr const& odom)
 {
@@ -148,7 +152,7 @@ void VFH_node::update(double const desiredAngle)
 	double const desiredDist = 100.0;
 	double const currGoalDistanceTolerance = 0.250;
 	double chosenLinearX, chosenAngularZ;
-	m_vfh->update(
+	this->vfh->update(
 		this->laserRanges,
 		this->robotLinearX,
 		desiredAngle + (M_PI / 2.0),
