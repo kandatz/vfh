@@ -15,11 +15,11 @@
 #include "yuiwong/rosvfhplus.hpp"
 namespace yuiwong
 {
-VfhNode::VfhNode(ros::NodeHandle nh, ros::NodeHandle pnh):
+VfhPlusNode::VfhPlusNode(ros::NodeHandle nh, ros::NodeHandle pnh):
 nh(nh), pnh(pnh)
 {
 	ROS_INFO("Starting VFH");
-	Vfh::Param p;
+	VfhPlus::Param p;
 	p.cell_size = 100;// mm, cell dimension
 	p.window_diameter = 60;// number of cells
 	p.sector_angle = 5;// deg, sector angle
@@ -57,7 +57,7 @@ nh(nh), pnh(pnh)
 	double robot_radius;
 	if(!this->pnh.getParam("robot_radius", robot_radius))
 		robot_radius = 300.0;// robot radius in mm
-	this->vfh = boost::make_shared<Vfh>(p);
+	this->vfh = boost::make_shared<VfhPlus>(p);
 	this->vfh->setRobotRadius(robot_radius);
 	this->vfh->init();
 	this->desiredVelocity.angle = 0;
@@ -69,21 +69,21 @@ nh(nh), pnh(pnh)
 		throw std::logic_error("scan topic is empty");
 	}
 	scanSubscriber = this->nh.subscribe(
-		scanTopic, 1, &VfhNode::scanCallback, this);
+		scanTopic, 1, &VfhPlusNode::scanCallback, this);
 	std::string odomTopic("");
 	this->pnh.param<std::string>("odom_topic", odomTopic, "/odom");
 	if(odomTopic.length() <= 0) {
 		throw std::logic_error("odom topic is empty");
 	}
 	odomSubscriber = this->nh.subscribe(
-		odomTopic, 1, &VfhNode::odomCallback, this);
+		odomTopic, 1, &VfhPlusNode::odomCallback, this);
 	// cmd_vel publisher
 	std::string t("");
 	this->pnh.param<std::string>("topic", t, "/cmd_vel");
 	this->velPublisher = this->nh.advertise<geometry_msgs::Twist>(
 		t, sizeof(size_t));
 }
-VfhNode::~VfhNode()
+VfhPlusNode::~VfhPlusNode()
 {
 	this->scanSubscriber.shutdown();
 	this->odomSubscriber.shutdown();
@@ -93,7 +93,7 @@ VfhNode::~VfhNode()
 	vel->angular.z = 0.0;
 	velPublisher.publish(vel);
 }
-void VfhNode::odomCallback(nav_msgs::OdometryConstPtr const& odom)
+void VfhPlusNode::odomCallback(nav_msgs::OdometryConstPtr const& odom)
 {
 	this->robotLinearX = odom->twist.twist.linear.x;
 	double const yaw = ::atan2(
@@ -109,7 +109,7 @@ void VfhNode::odomCallback(nav_msgs::OdometryConstPtr const& odom)
 		}
 	}
 }
-void VfhNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
+void VfhPlusNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 {
 	ROS_DEBUG("scanCallbac ranges %zu",scan->ranges.size());
 	double const goalTolerance = 0.2;
@@ -120,7 +120,7 @@ void VfhNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 		return;
 	}
 	desiredAngle = this->desiredVelocity.angle;
-	Vfh::convertScan(
+	VfhPlus::convertScan(
 		scan->ranges,
 		scan->angle_min,
 		scan->angle_max,
@@ -129,14 +129,14 @@ void VfhNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 		this->laserRanges);
 	this->update(desiredAngle);/* perform vfh+ */
 }
-void VfhNode::update(double const desiredAngle)
+void VfhPlusNode::update(double const desiredAngle)
 {
-	double const desiredDist = 100.0;
+	double const desiredDist = 2.0;
 	double const currGoalDistanceTolerance = 0.250;
 	double chosenLinearX, chosenAngularZ;
 	this->vfh->update(
 		this->laserRanges,
-		this->robotLinearX,
+		0.3,//this->robotLinearX,
 		desiredAngle + (M_PI / 2.0),
 		desiredDist,
 		currGoalDistanceTolerance,
@@ -155,10 +155,10 @@ void VfhNode::update(double const desiredAngle)
 }
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "VFH");
+	ros::init(argc, argv, "VFH +");
 	ros::NodeHandle nh;
 	ros::NodeHandle pnh("~");
-	yuiwong::VfhNode vfhnode(nh,pnh);
+	yuiwong::VfhPlusNode vfh(nh, pnh);
 	ros::spin();
 	return 0;
 }

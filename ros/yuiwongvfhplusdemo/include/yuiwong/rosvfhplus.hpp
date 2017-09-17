@@ -24,12 +24,12 @@
 #include <tf/transform_broadcaster.h>
 #include "yuiwong/vfhplus.hpp"
 namespace yuiwong {
-struct VfhNode {
-	VfhNode(ros::NodeHandle nh, ros::NodeHandle pnh);
-	~VfhNode();
+struct VfhPlusNode {
+	VfhPlusNode(ros::NodeHandle nh, ros::NodeHandle pnh);
+	~VfhPlusNode();
 	void update(double const desiredAngle);
 private:
-	boost::shared_ptr<Vfh> vfh;
+	boost::shared_ptr<VfhPlus> vfh;
 	double robotLinearX;/* meter/s */
 	std::array<double, 361> laserRanges;
 	ros::NodeHandle nh;

@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
-/*#include <iostream>*/
+#include <iostream>
 #include "yuiwong/angle.hpp"
 #define DTOR(d) ((d) * M_PI / 180)
 #define TIMESUB(a, b, result) do { \
@@ -30,7 +30,7 @@
 namespace yuiwong
 {
 /**
-* Vfh constructor
+* VfhPlus constructor
 * @param cell_size local map cell size
 * @param window_diameter windows diameter
 * @param sector_angle sector angle
@@ -51,7 +51,7 @@ namespace yuiwong
 * @param weight_desired_dir weight of the desired direction
 * @param weight_current_dir weight of the current direction
 */
-Vfh::Vfh(Param const& param):
+VfhPlus::VfhPlus(Param const& param):
 	CELL_WIDTH(param.cell_size),
 	WINDOW_DIAMETER(param.window_diameter),
 	SECTOR_ANGLE(param.sector_angle),
@@ -75,7 +75,7 @@ Vfh::Vfh(Param const& param):
 	desiredDirection(90),
 	pickedDirection(90),
 	lastPickedDirection(pickedDirection),
-	lastChosenSpeed(0)
+	lastChosenLinearX(0)
 {
 this->Last_Binary_Hist = nullptr;
 this->Hist = nullptr;
@@ -93,7 +93,7 @@ NUM_CELL_SECTOR_TABLES = 20;
 /**
 * Class destructor
 */
-Vfh::~Vfh()
+VfhPlus::~VfhPlus()
 {
 if(this->Hist)
 delete[] Hist;
@@ -105,7 +105,7 @@ delete[] Last_Binary_Hist;
 * @param speed current speed
 * @return max turn rate
 */
-int Vfh::GetMaxTurnrate(int speed)
+int VfhPlus::GetMaxTurnrate(int speed)
 {
 int val = (MAX_TURNRATE_0MS - (int)(speed*(MAX_TURNRATE_0MS-MAX_TURNRATE_1MS)/1000.0));
 if (val < 0)
@@ -116,7 +116,7 @@ return val;
 * Set the current max speed
 * @param max_speed current max speed
 */
-void Vfh::SetCurrentMaxSpeed(int max_speed)
+void VfhPlus::SetCurrentMaxSpeed(int max_speed)
 {
 this->Current_Max_Speed = std::min(max_speed, this->MAX_SPEED);
 this->Min_Turning_Radius.resize(Current_Max_Speed+1);
@@ -144,7 +144,7 @@ Min_Turning_Radius[x] = (int) (((dx / tan(dtheta))*1000.0) * MIN_TURN_RADIUS_SAF
 * @return the index speed
 */
 int
-Vfh::Get_Speed_Index(int speed)
+VfhPlus::Get_Speed_Index(int speed)
 {
 int val = (int) floor(((double)speed/(double)Current_Max_Speed)*NUM_CELL_SECTOR_TABLES);
 if (val >= NUM_CELL_SECTOR_TABLES)
@@ -159,7 +159,7 @@ return val;
 * @return the safety distance
 */
 int
-Vfh::Get_Safety_Dist(int speed)
+VfhPlus::Get_Safety_Dist(int speed)
 {
 int val = (int) (SAFETY_DIST_0MS + (int)(speed*(SAFETY_DIST_1MS-SAFETY_DIST_0MS)/1000.0));
 if (val < 0)
@@ -175,7 +175,7 @@ return val;
 * @return the threshold
 */
 double
-Vfh::Get_Binary_Hist_Low(int speed)
+VfhPlus::Get_Binary_Hist_Low(int speed)
 {
 return (Binary_Hist_Low_0ms - (speed*(Binary_Hist_Low_0ms-Binary_Hist_Low_1ms)/1000.0));
 }
@@ -187,12 +187,12 @@ return (Binary_Hist_Low_0ms - (speed*(Binary_Hist_Low_0ms-Binary_Hist_Low_1ms)/1
 * @return the threshold
 */
 double
-Vfh::Get_Binary_Hist_High(int speed)
+VfhPlus::Get_Binary_Hist_High(int speed)
 {
 return (Binary_Hist_High_0ms - (speed*(Binary_Hist_High_0ms-Binary_Hist_High_1ms)/1000.0));
 }
 /** @brief start up the vfh+ algorithm */
-void Vfh::init()
+void VfhPlus::init()
 {
 	int x, y, i;
 	double plus_dir = 0, neg_dir = 0, plus_sector = 0, neg_sector = 0;
@@ -347,7 +347,7 @@ void Vfh::init()
 /**
 * Allocate the VFH+ memory
 */
-int Vfh::VFH_Allocate()
+int VfhPlus::VFH_Allocate()
 {
 std::vector<double> temp_vec;
 std::vector<int> temp_vec3;
@@ -399,7 +399,7 @@ return(1);
  * @param[out] chosenAngularZ the chosen turn rathe to drive the robot, in
  * radian/s
  */
-void Vfh::update(
+void VfhPlus::update(
 	std::array<double, 361> const& laserRanges,
 	double const currentLinearX,
 	double const goalDirection,
@@ -408,6 +408,7 @@ void Vfh::update(
 	double& chosenLinearX,
 	double& chosenAngularZ)
 {
+	std::cout << "currentLinearX " << currentLinearX << "\n";
 	this->desiredDirection = RadianToDegree(goalDirection);
 	this->goaldist = goalDistance * 1e3;
 	this->goaldistTolerance = goalDistanceTolerance * 1e3;
@@ -421,8 +422,9 @@ void Vfh::update(
 		currentPoseSpeed = 0;
 	} else {
 		currentPoseSpeed = currentLinearX * 1e3;
-	} if (currentPoseSpeed < lastChosenSpeed) {
-		currentPoseSpeed = lastChosenSpeed;
+	} if (DoubleCompare(currentPoseSpeed, this->lastChosenLinearX * 1e3)
+		< 0) {
+		currentPoseSpeed = this->lastChosenLinearX * 1e3;
 	}
 	// printf("update: currentPoseSpeed = %d\n",currentPoseSpeed);
 	// Work out how much time has elapsed since the last update,
@@ -453,7 +455,7 @@ void Vfh::update(
 	// printf("Picked Angle: %f\n", pickedDirection);
 	// OK, so now we've chosen a direction. Time to choose a speed.
 	// How much can we change our speed by?
-	int speedIncr;
+	double speedIncr;
 	if ((diffSeconds > 0.3) || (diffSeconds < 0)) {
 		// Either this is the first time we've been updated, or something's
 		// a bit screwy and
@@ -463,7 +465,10 @@ void Vfh::update(
 		// next time.
 		speedIncr = 10;
 	} else {
-		speedIncr = (int) (MAX_ACCELERATION * diffSeconds);
+		speedIncr = MAX_ACCELERATION * diffSeconds * 1e-3;
+	}
+	if (DoubleCompare(::fabs(speedIncr), 1e-6) <= 0) {
+		speedIncr = 1e-6;
 	}
 	if (cantTurnToGoal()) {
 		// The goal's too close -- we can't turn tightly enough to
@@ -471,21 +476,22 @@ void Vfh::update(
 		speedIncr = -speedIncr;
 	}
 	// Accelerate (if we're not already at maxSpeedForPickedDirection).
-	int chosenSpeed = std::min(
-		lastChosenSpeed + speedIncr, maxSpeedForPickedDirection);
+	double const v = this->lastChosenLinearX + speedIncr;
+	double chosenLinearX0 = std::min(
+		v, static_cast<double>(maxSpeedForPickedDirection) * 1e-3);
 	// printf("Max Speed for picked angle: %d\n",maxSpeedForPickedDirection);
 	// Set the chosen_turnrate, and possibly modify the chosen_speed
 	int chosenTurnrate = 0;
-	Set_Motion(chosenSpeed, chosenTurnrate, currentPoseSpeed);
-	chosenLinearX = chosenSpeed * 1e-3;
+	this->setMotion(chosenLinearX0, chosenTurnrate, currentPoseSpeed);
+	chosenLinearX = chosenLinearX0;
 	chosenAngularZ = NormalizeAngle(DegreeToRadian(chosenTurnrate));
-	lastChosenSpeed = chosenSpeed;
+	this->lastChosenLinearX = chosenLinearX0;
 }
 /**
 * The robot going too fast, such does it overshoot before it can turn to the goal?
 * @return true if the robot cannot turn to the goal
 */
-bool Vfh::cantTurnToGoal()
+bool VfhPlus::cantTurnToGoal()
 {
 // Calculate this by seeing if the goal is inside the blocked circles
 // (circles we can't enter because we're going too fast). Radii set
@@ -527,7 +533,7 @@ return false;
 * @param a2 second angle
 * @return the difference
 */
-double Vfh::deltaAngle(int a1, int a2)
+double VfhPlus::deltaAngle(int a1, int a2)
 {
 return(deltaAngle((double)a1, (double)a2));
 }
@@ -537,7 +543,7 @@ return(deltaAngle((double)a1, (double)a2));
  * @param a2 second angle
  * @return the difference [-180, 180]
  */
-double Vfh::deltaAngle(double const& a1, double const& a2)
+double VfhPlus::deltaAngle(double const& a1, double const& a2)
 {
 	double const diff = a2 - a1;
 	return NormalizeDegreeAngle(diff);
@@ -548,7 +554,7 @@ double Vfh::deltaAngle(double const& a1, double const& a2)
  * @param angle2 second angle
  * @return the bisector angle [-360, 360)
  */
-int Vfh::bisectAngle(int const angle1, int const angle2)
+int VfhPlus::bisectAngle(int const angle1, int const angle2)
 {
 	double const a = deltaAngle((double)angle1, (double)angle2);
 	int const angle = static_cast<int>(::rint(angle1 + (a / 2.0)));
@@ -558,7 +564,7 @@ int Vfh::bisectAngle(int const angle1, int const angle2)
 * Select the candidate angle to decide the direction using the given weights
 * @return 1
 */
-int Vfh::Select_Candidate_Angle()
+int VfhPlus::Select_Candidate_Angle()
 {
 unsigned int i;
 double weight, min_weight;
@@ -592,7 +598,7 @@ return(1);
 * Select the used direction
 * @return 1
 */
-int Vfh::selectDirection()
+int VfhPlus::selectDirection()
 {
 int start, i, left;
 double angle, new_angle;
@@ -690,7 +696,7 @@ return(1);
 /**
 * Print the cells directions
 */
-void Vfh::Print_Cells_Dir()
+void VfhPlus::Print_Cells_Dir()
 {
 int x, y;
 printf("\nCell Directions:\n");
@@ -705,7 +711,7 @@ printf("\n");
 /**
 * Print the cells magnitude
 */
-void Vfh::Print_Cells_Mag()
+void VfhPlus::Print_Cells_Mag()
 {
 int x, y;
 printf("\nCell Magnitudes:\n");
@@ -720,7 +726,7 @@ printf("\n");
 /**
 * Print the cells distances
 */
-void Vfh::Print_Cells_Dist()
+void VfhPlus::Print_Cells_Dist()
 {
 int x, y;
 printf("\nCell Distances:\n");
@@ -735,7 +741,7 @@ printf("\n");
 /**
 * Print the cells sectors
 */
-void Vfh::Print_Cells_Sector()
+void VfhPlus::Print_Cells_Sector()
 {
 int x, y;
 unsigned int i;
@@ -757,7 +763,7 @@ printf("\n");
 /**
 * Print the cells enlargement angles
 */
-void Vfh::Print_Cells_Enlargement_Angle()
+void VfhPlus::Print_Cells_Enlargement_Angle()
 {
 int x, y;
 printf("\nEnlargement Angles:\n");
@@ -772,7 +778,7 @@ printf("\n");
 /**
 * Print the histogram
 */
-void Vfh::Print_Hist()
+void VfhPlus::Print_Hist()
 {
 int x;
 printf("Histogram:\n");
@@ -788,7 +794,7 @@ printf("\n\n");
 * @param speed robot speed
 * @return 1
 */
-int Vfh::Calculate_Cells_Mag(
+int VfhPlus::Calculate_Cells_Mag(
 	std::array<double, 361> const& laserRanges, int speed)
 {
 int x, y;
@@ -851,7 +857,7 @@ return(1);
 * @param speed robot speed
 * @return 1
 */
-int Vfh::buildPrimaryPolarHistogram(
+int VfhPlus::buildPrimaryPolarHistogram(
 	std::array<double, 361> const& laserRanges, int speed)
 {
 int x, y;
@@ -890,7 +896,7 @@ return(1);
 * @param speed robot speed
 * @return 1
 */
-int Vfh::buildBinaryPolarHistogram(int speed)
+int VfhPlus::buildBinaryPolarHistogram(int speed)
 {
 int x;
 for(x = 0;x<HIST_SIZE;x++) {
@@ -915,7 +921,7 @@ return(1);
 * @param speed robot speed
 * @return 1
 */
-int Vfh::buildMaskedPolarHistogram(int speed)
+int VfhPlus::buildMaskedPolarHistogram(int speed)
 {
 int x, y;
 double center_x_right, center_x_left, center_y, dist_r, dist_l;
@@ -989,49 +995,34 @@ Hist[x] = 1;
 return(1);
 }
 /**
-* Set the motion commands
-* @param speed the desire speed
-* @param turnrate the desire turn rate
-* @param actual_speed the current speed
-* @return 1
-*/
-int Vfh::Set_Motion(int &speed, int &turnrate, int actual_speed)
+ * @brief set the motion commands
+ * @param speed the desire speed
+ * @param turnrate the desire turn rate
+ * @param actual_speed the current speed, mm/s
+ */
+void VfhPlus::setMotion(double& linearX, int& turnrate, int const actualSpeed)
 {
-// This happens if all directions blocked, so just spin in place
-if (speed <= 0)
-{
-//printf("stop\n");
-turnrate = GetMaxTurnrate(actual_speed);
-speed = 0;
+	// this happens if all directions blocked, so just spin in place
+	if (DoubleCompare(linearX) <= 0) {
+		turnrate = this->GetMaxTurnrate(actualSpeed);
+		linearX = 0;
+		return;
+	}
+	if ((pickedDirection > 270) && (pickedDirection < 360)) {
+		turnrate = -1 * GetMaxTurnrate(actualSpeed);
+	} else if ((pickedDirection < 270) && (pickedDirection > 180)) {
+		turnrate = GetMaxTurnrate(actualSpeed);
+	} else {
+		turnrate = (int)rint(((double)(pickedDirection - 90) / 75.0)
+			* GetMaxTurnrate(actualSpeed));
+		if (turnrate > GetMaxTurnrate(actualSpeed)) {
+			turnrate = GetMaxTurnrate(actualSpeed);
+		} else if (turnrate < (-1 * GetMaxTurnrate(actualSpeed))) {
+			turnrate = -1 * GetMaxTurnrate(actualSpeed);
+		}
+	}
 }
-else
-{
-// printf("Picked %f\n", pickedDirection);
-if ((pickedDirection > 270) && (pickedDirection < 360)) {
-turnrate = -1 * GetMaxTurnrate(actual_speed);
-} else if ((pickedDirection < 270) && (pickedDirection > 180)) {
-turnrate = GetMaxTurnrate(actual_speed);
-} else {
-turnrate = (int)rint(((double)(pickedDirection - 90) / 75.0) * GetMaxTurnrate(actual_speed));
-// 	turnrate = (int)rint(((double)(pickedDirection) / 75.0) * GetMaxTurnrate(actual_speed));
-// printf("GetMaxTurnrate(actual_speed): %d, pickedDirection: %f, turnrate %d\n",
-// 		 GetMaxTurnrate(actual_speed),
-// 		 pickedDirection,
-// 		 turnrate);
-if (turnrate > GetMaxTurnrate(actual_speed)) {
-turnrate = GetMaxTurnrate(actual_speed);
-} else if (turnrate < (-1 * GetMaxTurnrate(actual_speed))) {
-turnrate = -1 * GetMaxTurnrate(actual_speed);
-}
-// if (abs(turnrate) > (0.9 * GetMaxTurnrate(actual_speed))) {
-// speed = 0;
-// }
-}
-}
-// speed and turnrate have been set for the calling function -- return.
-return(1);
-}
-std::array<double, 361> Vfh::convertScan(
+std::array<double, 361> VfhPlus::convertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
 	double const angleMax,
@@ -1076,7 +1067,7 @@ std::array<double, 361> Vfh::convertScan(
 	}
 	return result;
 }
-void Vfh::convertScan(
+void VfhPlus::convertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
 	double const angleMax,

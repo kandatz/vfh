@@ -140,7 +140,7 @@ weight_current_dir = 1.0
 ...
 @endverbatim
 */
-struct Vfh {
+struct VfhPlus {
 	struct Param {
 		double cell_size;
 		int window_diameter;
@@ -162,8 +162,8 @@ struct Vfh {
 		double weight_desired_dir;
 		double weight_current_dir;
 	};
-	Vfh(Param const& param);
-	virtual ~Vfh();
+	VfhPlus(Param const& param);
+	virtual ~VfhPlus();
 	static std::array<double, 361> convertScan(
 		std::vector<float> const ranges,
 		double const angleMin,
@@ -252,7 +252,13 @@ int buildBinaryPolarHistogram(int speed);
 int buildMaskedPolarHistogram(int speed);
 int Select_Candidate_Angle();
 int selectDirection();
-int Set_Motion(int &speed, int &turnrate, int current_speed);
+	/**
+	 * @brief set the motion commands
+	 * @param speed the desire speed
+	 * @param turnrate the desire turn rate
+	 * @param actual_speed the current speed, mm/s
+	 */
+	void setMotion(double& speed, int& turnrate, int const currentSpeed);
 // AB: This doesn't seem to be implemented anywhere...
 // int Read_Min_Turning_Radius_From_File(char *filename);
 void Print_Cells_Dir();
@@ -317,7 +323,7 @@ double *Last_Binary_Hist;
 std::vector<int> Min_Turning_Radius;
 	// Keep track of last update, so we can monitor acceleration
 	timeval lastUpdateTime;
-	int lastChosenSpeed;
+	double lastChosenLinearX;/* meter/s */
 };
 }
 #endif
