@@ -28,9 +28,6 @@
 
 #define DEG2RAD(a) ((a) * M_PI / 180.0)
 
-std::string scan_topic_  = "base_scan";
-std::string odom_topic_  = "odom";
-
 class VFH_node
 {
 public:

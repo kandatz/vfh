@@ -86,10 +86,20 @@ nh_(nh), nh_private_(nh_private)
 	m_vfh->Init();
 
 	// subscribe to topics
-	scan_subscriber_ = nh_.subscribe(
-			scan_topic_, 1, &VFH_node::scanCallback, this);
-	odom_subscriber_ = nh_.subscribe(
-			odom_topic_, 1, &VFH_node::odomCallback, this);
+	std::string scanTopic("");
+	this->nh_private_.param<std::string>("scan_topic", scanTopic, "/scan");
+	if (scanTopic.length() <= 0) {
+		throw std::logic_error("scan topic is empty");
+	}
+	scan_subscriber_ = this->nh_.subscribe(
+		scanTopic, 1, &VFH_node::scanCallback, this);
+	std::string odomTopic("");
+	this->nh_private_.param<std::string>("odom_topic", odomTopic, "/odom");
+	if (odomTopic.length() <= 0) {
+		throw std::logic_error("odom topic is empty");
+	}
+	odom_subscriber_ = this->nh_.subscribe(
+		odomTopic, 1, &VFH_node::odomCallback, this);
 	// cmd_vel publisher
 	vel_publisher_= nh_.advertise<geometry_msgs::Twist>("cmd_vel",5);
 
