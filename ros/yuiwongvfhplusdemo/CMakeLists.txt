@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 2.8.3)
 project(yuiwongvfhplusdemo)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
-add_compile_options(-Wall -Wextra)
-add_compile_options(-Wundef)
-add_compile_options(-Wunreachable-code)
-add_compile_options(-Winline)
-add_compile_options(-Werror)
+add_definitions(-Wall -Wextra)
+add_definitions(-Wundef)
+add_definitions(-Wunreachable-code)
+add_definitions(-Winline)
+add_definitions(-Werror)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
