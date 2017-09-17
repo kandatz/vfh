@@ -561,23 +561,16 @@ double Vfh::deltaAngle(double const& a1, double const& a2)
 	return NormalizeDegreeAngle(diff);
 }
 /**
-* Calculate the bisector between two angle
-* @param angle1 first angle
-* @param angle2 second angle
-* @return the bisector angle
-*/
-int Vfh::Bisect_Angle(int angle1, int angle2)
+ * @brief calculate the bisector between two angle
+ * @param angle1 first angle
+ * @param angle2 second angle
+ * @return the bisector angle [-360, 360)
+ */
+int Vfh::bisectAngle(int const angle1, int const angle2)
 {
-double a;
-int angle;
-a = deltaAngle((double)angle1, (double)angle2);
-angle = (int)rint(angle1 + (a / 2.0));
-if (angle < 0) {
-angle += 360;
-} else if (angle >= 360) {
-angle -= 360;
-}
-return(angle);
+	double const a = deltaAngle((double)angle1, (double)angle2);
+	int const angle = static_cast<int>(::rint(angle1 + (a / 2.0)));
+	return NormalizeDegreeAnglePositive(angle);
 }
 /**
 * Select the candidate angle to decide the direction using the given weights

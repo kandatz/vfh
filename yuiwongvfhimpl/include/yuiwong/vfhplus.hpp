@@ -237,7 +237,13 @@ double deltaAngle(int a1, int a2);
 	 * @return the difference [-180, 180]
 	 */
 	double deltaAngle(double const& a1, double const& a2);
-int Bisect_Angle(int angle1, int angle2);
+	/**
+	 * @brief calculate the bisector between two angle
+	 * @param angle1 first angle
+	 * @param angle2 second angle
+	 * @return the bisector angle [-360, 360)
+	 */
+	int bisectAngle(int const angle1, int const angle2);
 bool Cant_Turn_To_Goal();
 // Returns 0 if something got inside the safety distance, else 1.
 int Calculate_Cells_Mag(
