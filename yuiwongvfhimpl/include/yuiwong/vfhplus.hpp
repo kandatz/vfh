@@ -1,17 +1,17 @@
 /* ========================================================================
-* This library is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Lesser General Public License as published
-* by the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU Lesser General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-* ======================================================================== */
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * ======================================================================== */
 #ifndef VFH_ALGORITHM_H
 #define VFH_ALGORITHM_H
 #include <sys/time.h>
@@ -22,24 +22,24 @@
 #define MIN(a,b) ((a < b) ? (a) : (b))
 #endif
 #define DTOR(d) ((d) * M_PI / 180)
-#define TIMESUB(a, b, result)                                                 \
-do {                                                                        \
-(result)->tv_sec = (a)->tv_sec - (b)->tv_sec;                             \
-(result)->tv_usec = (a)->tv_usec - (b)->tv_usec;                          \
-if ((result)->tv_usec < 0) {                                              \
---(result)->tv_sec;                                                     \
-(result)->tv_usec += 1000000;                                           \
-}                                                                         \
+#define TIMESUB(a, b, result) \
+do { \
+(result)->tv_sec = (a)->tv_sec - (b)->tv_sec; \
+(result)->tv_usec = (a)->tv_usec - (b)->tv_usec; \
+if ((result)->tv_usec < 0) { \
+--(result)->tv_sec; \
+(result)->tv_usec += 1000000; \
+} \
 } while (0)
 namespace yuiwong {
 /** @brief Vector Field Histogram local navigation algorithm
 The vfh class implements the Vector Field Histogram Plus local
-navigation method by Ulrich and Borenstein.  VFH+ provides real-time
+navigation method by Ulrich and Borenstein. VFH+ provides real-time
 obstacle avoidance and path following capabilities for mobile robots.
 Layered on top of a laser-equipped robot, vfh works great as a local
 navigation system.
 The primary parameters to tweak to get reliable performance are
-@p safety_dist and @p free_space_cutoff.  In general, @p safety_dist determines how
+@p safety_dist and @p free_space_cutoff. In general, @p safety_dist determines how
 close the robot will come to an obstacle while turning (around a corner
 for instance) and @p free_space_cutoff determines how close a robot will
 get to an obstacle in the direction of motion before turning to avoid.
@@ -48,7 +48,7 @@ From experience, it is recommeded that @p max_turnrate should be at least
 To get initiated to VFH, I recommend starting with the default
 values for all parameters and experimentally adjusting @p safety_dist
 and @p free_space_cutoff to get a feeling for how the parameters affect
-performance.  Once comfortable, increase @p max_speed and @p max_turnrate.
+performance. Once comfortable, increase @p max_speed and @p max_turnrate.
 Unless you are familiar with the VFH algorithm, I don't recommend
 deviating from the default values for @p cell_size, @p window_diameter,
 or @p sector_angle.
@@ -65,7 +65,7 @@ VFH and VFH+ articles:
 obstacles
 - @p sonar : the sonar that will be used to avoid
 obstacles
-@par Configuration file options ( contained in pathPlanning.conf )
+@par Configuration file options (contained in pathPlanning.conf)
 - cell_size (length)
 - Default: 0.1 m
 - Local occupancy map grid size
@@ -109,11 +109,11 @@ travelling at 1 m/s.
 - ?
 - free_space_cutoff_0ms (double)
 - Default: 2000000.0
-- Unitless value.  The higher the value, the closer the robot will
+- Unitless value. The higher the value, the closer the robot will
 get to obstacles before avoiding (while stopped).
 - free_space_cutoff_1ms (double)
 - Default: free_space_cutoff_0ms
-- Unitless value.  The higher the value, the closer the robot will
+- Unitless value. The higher the value, the closer the robot will
 get to obstacles before avoiding (while travelling at 1 m/s).
 - obs_cutoff_0ms (double)
 - Default: free_space_cutoff_0ms
@@ -191,13 +191,14 @@ struct Vfh {
 		double const angleIncrement,
 		double const rangeMax,
 		double result[361][2]);
-int Init();
+	/** @brief start up the vfh+ algorithm */
+	void init();
 // Choose a new speed and turnrate based on the given laser data and current speed.
 //
 // Units/Senses:
-//  - goal_direction in degrees, 0deg is to the right.
-//  - goal_distance  in mm.
-//  - goal_distance_tolerance in mm.
+// - goal_direction in degrees, 0deg is to the right.
+// - goal_distance in mm.
+// - goal_distance_tolerance in mm.
 //
 int update(
 	std::array<double, 361> const& laserRanges,
@@ -208,18 +209,18 @@ int update(
 	int &chosen_speed,
 	int &chosen_turnrate);
 // Get methods
-int   GetMinTurnrate() { return MIN_TURNRATE; }
-// Angle to goal, in degrees.  0deg is to our right.
+int GetMinTurnrate() { return MIN_TURNRATE; }
+// Angle to goal, in degrees. 0deg is to our right.
 double GetDesiredAngle() { return Desired_Angle; }
 double GetPickedAngle() { return Picked_Angle; }
 // Max Turnrate depends on speed
-int GetMaxTurnrate( int speed );
+int GetMaxTurnrate(int speed);
 int GetCurrentMaxSpeed() { return Current_Max_Speed; }
 	inline void setRobotRadius(double const robot_radius) {
 		this->ROBOT_RADIUS = robot_radius;
 	}
-void SetMinTurnrate( int min_turnrate ) { MIN_TURNRATE = min_turnrate; }
-void SetCurrentMaxSpeed( int Current_Max_Speed );
+void SetMinTurnrate(int min_turnrate) { MIN_TURNRATE = min_turnrate; }
+void SetCurrentMaxSpeed(int Current_Max_Speed);
 // The Histogram.
 // This is public so that monitoring tools can get at it; it shouldn't
 // be modified externally.
@@ -255,7 +256,7 @@ int Build_Binary_Polar_Histogram(int speed);
 int Build_Masked_Polar_Histogram(int speed);
 int Select_Candidate_Angle();
 int Select_Direction();
-int Set_Motion( int &speed, int &turnrate, int current_speed );
+int Set_Motion(int &speed, int &turnrate, int current_speed);
 // AB: This doesn't seem to be implemented anywhere...
 // int Read_Min_Turning_Radius_From_File(char *filename);
 void Print_Cells_Dir();
@@ -265,46 +266,46 @@ void Print_Cells_Enlargement_Angle();
 void Print_Hist();
 // Returns the speed index into Cell_Sector, for a given speed in mm/sec.
 // This exists so that only a few (potentially large) Cell_Sector tables must be stored.
-int Get_Speed_Index( int speed );
+int Get_Speed_Index(int speed);
 // Returns the safety dist in mm for this speed.
-int Get_Safety_Dist( int speed );
-double Get_Binary_Hist_Low( int speed );
-double Get_Binary_Hist_High( int speed );
+int Get_Safety_Dist(int speed);
+double Get_Binary_Hist_Low(int speed);
+double Get_Binary_Hist_High(int speed);
 int GetTimeDouble(double* time);
 // Data
-double ROBOT_RADIUS;           // millimeters
-int CENTER_X;                 // cells
-int CENTER_Y;                 // cells
-int HIST_SIZE;                // sectors (over 360deg)
-double CELL_WIDTH;             // millimeters
-int WINDOW_DIAMETER;          // cells
-int SECTOR_ANGLE;             // degrees
-double SAFETY_DIST_0MS;        // millimeters
-double SAFETY_DIST_1MS;        // millimeters
-int Current_Max_Speed;        // mm/sec
-int MAX_SPEED;                // mm/sec
+double ROBOT_RADIUS; // millimeters
+int CENTER_X; // cells
+int CENTER_Y; // cells
+int HIST_SIZE; // sectors (over 360deg)
+double CELL_WIDTH; // millimeters
+int WINDOW_DIAMETER; // cells
+int SECTOR_ANGLE; // degrees
+double SAFETY_DIST_0MS; // millimeters
+double SAFETY_DIST_1MS; // millimeters
+int Current_Max_Speed; // mm/sec
+int MAX_SPEED; // mm/sec
 int MAX_SPEED_NARROW_OPENING; // mm/sec
-int MAX_SPEED_WIDE_OPENING;   // mm/sec
-int MAX_ACCELERATION;         // mm/sec/sec
-int MIN_TURNRATE;             // deg/sec -- not actually used internally
+int MAX_SPEED_WIDE_OPENING; // mm/sec
+int MAX_ACCELERATION; // mm/sec/sec
+int MIN_TURNRATE; // deg/sec -- not actually used internally
 int NUM_CELL_SECTOR_TABLES;
 // Scale turnrate linearly between these two
-int MAX_TURNRATE_0MS;       // deg/sec
-int MAX_TURNRATE_1MS;       // deg/sec
+int MAX_TURNRATE_0MS; // deg/sec
+int MAX_TURNRATE_1MS; // deg/sec
 double MIN_TURN_RADIUS_SAFETY_FACTOR;
 double Binary_Hist_Low_0ms, Binary_Hist_High_0ms;
 double Binary_Hist_Low_1ms, Binary_Hist_High_1ms;
 double U1, U2;
 double Desired_Angle, Dist_To_Goal, Goal_Distance_Tolerance;
 double Picked_Angle, Last_Picked_Angle;
-int   Max_Speed_For_Picked_Angle;
+int Max_Speed_For_Picked_Angle;
 // Radius of dis-allowed circles, either side of the robot, which
 // we can't enter due to our minimum turning radius.
 double Blocked_Circle_Radius;
 std::vector<std::vector<double> > Cell_Direction;
 std::vector<std::vector<double> > Cell_Base_Mag;
 std::vector<std::vector<double> > Cell_Mag;
-std::vector<std::vector<double> > Cell_Dist;      // millimetres
+std::vector<std::vector<double> > Cell_Dist; // millimetres
 std::vector<std::vector<double> > Cell_Enlarge;
 // Cell_Sector[x][y] is a vector of indices to sectors that are effected if cell (x,y) contains
 // an obstacle.

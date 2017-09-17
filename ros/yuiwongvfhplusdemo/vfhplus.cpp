@@ -78,7 +78,7 @@ nh_(nh), nh_private_(nh_private)
 	};
 	this->m_vfh = new Vfh(param);
 	m_vfh->setRobotRadius(robot_radius);
-	m_vfh->Init();
+	m_vfh->init();
 	this->desiredVelocity.angle = 0;
 	this->desiredVelocity.stamp = 0;
 	// subscribe to topics
