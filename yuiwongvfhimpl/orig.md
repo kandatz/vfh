@@ -1,0 +1,2 @@
+- <https://github.com/morpheus1820/ros-nodes>
+- <https://yuiwong.org/gitlab/algorithm/vfhplus-waypointnav>
