@@ -18,18 +18,14 @@
 #include <math.h>
 /*#include <iostream>*/
 #include "yuiwong/angle.hpp"
-#ifndef MIN
-#	define MIN(a,b) ((a < b) ? (a) : (b))
-#endif
 #define DTOR(d) ((d) * M_PI / 180)
-#define TIMESUB(a, b, result) \
-	do { \
-	(result)->tv_sec = (a)->tv_sec - (b)->tv_sec; \
-	(result)->tv_usec = (a)->tv_usec - (b)->tv_usec; \
-	if ((result)->tv_usec < 0) { \
-	--(result)->tv_sec; \
-	(result)->tv_usec += 1000000; \
-	} \
+#define TIMESUB(a, b, result) do { \
+		(result)->tv_sec = (a)->tv_sec - (b)->tv_sec; \
+		(result)->tv_usec = (a)->tv_usec - (b)->tv_usec; \
+		if ((result)->tv_usec < 0) { \
+			--(result)->tv_sec; \
+			(result)->tv_usec += 1000000; \
+		} \
 	} while (0)
 namespace yuiwong
 {
@@ -81,8 +77,8 @@ Vfh::Vfh(Param const& param):
 	lastPickedDirection(pickedDirection),
 	lastChosenSpeed(0)
 {
-this->Last_Binary_Hist = NULL;
-this->Hist = NULL;
+this->Last_Binary_Hist = nullptr;
+this->Hist = nullptr;
 if (SAFETY_DIST_0MS == SAFETY_DIST_1MS)
 {
 // For the simple case of a fixed safety_dist, keep things simple.
@@ -122,7 +118,7 @@ return val;
 */
 void Vfh::SetCurrentMaxSpeed(int max_speed)
 {
-this->Current_Max_Speed = MIN(max_speed, this->MAX_SPEED);
+this->Current_Max_Speed = std::min(max_speed, this->MAX_SPEED);
 this->Min_Turning_Radius.resize(Current_Max_Speed+1);
 // small chunks of forward movements and turns-in-place used to
 // estimate turning radius, coz I'm too lazy to screw around with limits -> 0.
@@ -475,7 +471,7 @@ void Vfh::update(
 		speedIncr = -speedIncr;
 	}
 	// Accelerate (if we're not already at maxSpeedForPickedDirection).
-	int chosenSpeed = MIN(
+	int chosenSpeed = std::min(
 		lastChosenSpeed + speedIncr, maxSpeedForPickedDirection);
 	// printf("Max Speed for picked angle: %d\n",maxSpeedForPickedDirection);
 	// Set the chosen_turnrate, and possibly modify the chosen_speed
@@ -663,7 +659,8 @@ if (fabs(angle) < 80)
 // narrow opening: aim for the centre
 new_angle = border[i].first + (border[i].second - border[i].first) / 2.0;
 Candidate_Angle.push_back(new_angle);
-Candidate_Speed.push_back(MIN(Current_Max_Speed,MAX_SPEED_NARROW_OPENING));
+Candidate_Speed.push_back(std::min(
+	Current_Max_Speed,MAX_SPEED_NARROW_OPENING));
 }
 else
 {
@@ -673,17 +670,17 @@ Candidate_Angle.push_back(new_angle);
 Candidate_Speed.push_back(Current_Max_Speed);
 new_angle = (double)((border[i].first + 40) % 360);
 Candidate_Angle.push_back(new_angle);
-Candidate_Speed.push_back(MIN(Current_Max_Speed,MAX_SPEED_WIDE_OPENING));
+Candidate_Speed.push_back(std::min(Current_Max_Speed,MAX_SPEED_WIDE_OPENING));
 new_angle = (double)(border[i].second - 40);
 if (new_angle < 0)
 new_angle += 360;
 Candidate_Angle.push_back(new_angle);
-Candidate_Speed.push_back(MIN(Current_Max_Speed,MAX_SPEED_WIDE_OPENING));
+Candidate_Speed.push_back(std::min(Current_Max_Speed,MAX_SPEED_WIDE_OPENING));
 // See if candidate dir is in this opening
 if ((deltaAngle(desiredDirection, Candidate_Angle[Candidate_Angle.size()-2]) < 0) &&
 (deltaAngle(desiredDirection, Candidate_Angle[Candidate_Angle.size()-1]) > 0)) {
 Candidate_Angle.push_back(desiredDirection);
-Candidate_Speed.push_back(MIN(Current_Max_Speed,MAX_SPEED_WIDE_OPENING));
+Candidate_Speed.push_back(std::min(Current_Max_Speed,MAX_SPEED_WIDE_OPENING));
 }
 }
 }
