@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <math.h>
 /*#include <iostream>*/
+#include "yuiwong/angle.hpp"
 namespace yuiwong
 {
 /**
@@ -544,26 +545,20 @@ return false;
 * @param a2 second angle
 * @return the difference
 */
-double Vfh::Delta_Angle(int a1, int a2)
+double Vfh::deltaAngle(int a1, int a2)
 {
-return(Delta_Angle((double)a1, (double)a2));
+return(deltaAngle((double)a1, (double)a2));
 }
 /**
-* Difference between two double angle
-* @param a1 first angle
-* @param a2 second angle
-* @return the difference
-*/
-double Vfh::Delta_Angle(double a1, double a2)
+ * @brief difference between two double angle
+ * @param a1 first angle
+ * @param a2 second angle
+ * @return the difference [-180, 180]
+ */
+double Vfh::deltaAngle(double const& a1, double const& a2)
 {
-double diff;
-diff = a2 - a1;
-if (diff > 180) {
-diff -= 360;
-} else if (diff < -180) {
-diff += 360;
-}
-return(diff);
+	double const diff = a2 - a1;
+	return NormalizeDegreeAngle(diff);
 }
 /**
 * Calculate the bisector between two angle
@@ -575,7 +570,7 @@ int Vfh::Bisect_Angle(int angle1, int angle2)
 {
 double a;
 int angle;
-a = Delta_Angle((double)angle1, (double)angle2);
+a = deltaAngle((double)angle1, (double)angle2);
 angle = (int)rint(angle1 + (a / 2.0));
 if (angle < 0) {
 angle += 360;
@@ -606,8 +601,8 @@ min_weight = 10000000;
 for(i=0;i<Candidate_Angle.size();i++)
 {
 //printf("CANDIDATE: %f\n", Candidate_Angle[i]);
-weight = U1 * fabs(Delta_Angle(Desired_Angle, Candidate_Angle[i])) +
-U2 * fabs(Delta_Angle(Last_Picked_Angle, Candidate_Angle[i]));
+weight = U1 * fabs(deltaAngle(Desired_Angle, Candidate_Angle[i])) +
+U2 * fabs(deltaAngle(Last_Picked_Angle, Candidate_Angle[i]));
 if (weight < min_weight)
 {
 min_weight = weight;
@@ -678,7 +673,7 @@ left = 1;
 for(i=0;i<(int)border.size();i++)
 {
 //    printf("BORDER: %d %d\n", border[i].first, border[i].second);
-angle = Delta_Angle(border[i].first, border[i].second);
+angle = deltaAngle(border[i].first, border[i].second);
 if (fabs(angle) < 10)
 {
 // ignore very narrow openings
@@ -706,8 +701,8 @@ new_angle += 360;
 Candidate_Angle.push_back(new_angle);
 Candidate_Speed.push_back(MIN(Current_Max_Speed,MAX_SPEED_WIDE_OPENING));
 // See if candidate dir is in this opening
-if ((Delta_Angle(Desired_Angle, Candidate_Angle[Candidate_Angle.size()-2]) < 0) &&
-(Delta_Angle(Desired_Angle, Candidate_Angle[Candidate_Angle.size()-1]) > 0)) {
+if ((deltaAngle(Desired_Angle, Candidate_Angle[Candidate_Angle.size()-2]) < 0) &&
+(deltaAngle(Desired_Angle, Candidate_Angle[Candidate_Angle.size()-1]) > 0)) {
 Candidate_Angle.push_back(Desired_Angle);
 Candidate_Speed.push_back(MIN(Current_Max_Speed,MAX_SPEED_WIDE_OPENING));
 }
@@ -975,8 +970,8 @@ for(x=0;x<WINDOW_DIAMETER;x++)
 {
 if (Cell_Mag[x][y] == 0)
 continue;
-if ((Delta_Angle(Cell_Direction[x][y], angle_ahead) > 0) &&
-(Delta_Angle(Cell_Direction[x][y], phi_right) <= 0))
+if ((deltaAngle(Cell_Direction[x][y], angle_ahead) > 0) &&
+(deltaAngle(Cell_Direction[x][y], phi_right) <= 0))
 {
 // The cell is between phi_right and angle_ahead
 dist_r = hypot(center_x_right - x, center_y - y) * CELL_WIDTH;
@@ -985,8 +980,8 @@ if (dist_r < Blocked_Circle_Radius)
 phi_right = Cell_Direction[x][y];
 }
 }
-else if ((Delta_Angle(Cell_Direction[x][y], angle_ahead) <= 0) &&
-(Delta_Angle(Cell_Direction[x][y], phi_left) > 0))
+else if ((deltaAngle(Cell_Direction[x][y], angle_ahead) <= 0) &&
+(deltaAngle(Cell_Direction[x][y], phi_left) > 0))
 {
 // The cell is between phi_left and angle_ahead
 dist_l = hypot(center_x_left - x, center_y - y) * CELL_WIDTH;
@@ -1003,10 +998,10 @@ phi_left = Cell_Direction[x][y];
 for(x=0;x<HIST_SIZE;x++)
 {
 angle = x * SECTOR_ANGLE;
-if ((Hist[x] == 0) && (((Delta_Angle((double)angle, phi_right) <= 0) &&
-(Delta_Angle((double)angle, angle_ahead) >= 0)) ||
-((Delta_Angle((double)angle, phi_left) >= 0) &&
-(Delta_Angle((double)angle, angle_ahead) <= 0))))
+if ((Hist[x] == 0) && (((deltaAngle((double)angle, phi_right) <= 0) &&
+(deltaAngle((double)angle, angle_ahead) >= 0)) ||
+((deltaAngle((double)angle, phi_left) >= 0) &&
+(deltaAngle((double)angle, angle_ahead) <= 0))))
 {
 Hist[x] = 0;
 }

@@ -38,6 +38,8 @@ if(NOT EIGEN3_INCLUDE_DIRS)
   find_package(PkgConfig REQUIRED)
   pkg_search_module(EIGEN3 REQUIRED eigen3)
 endif()
+find_package(yuiwongcppbase REQUIRED)
+find_package(yuiwonggeometry REQUIRED)
 ##
 # basic CXX_FLAGS
 #
@@ -66,7 +68,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wunreachable-code")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 message(STATUS "CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS})
 #include_directories(${CMAKE_SOURCE_DIR})
-include_directories(include ${EIGEN3_INCLUDE_DIRS})
+include_directories(include
+  include
+  ${EIGEN3_INCLUDE_DIRS}
+  ${yuiwongcppbase_INCLUDE_DIRS}
+  ${yuiwonggeometry_INCLUDE_DIRS})
 ##
 set(SRC
   src/vfhplus.cpp)

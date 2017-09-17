@@ -229,8 +229,14 @@ void Print_Cells_Mag();
 private:
 // Functions
 int VFH_Allocate();
-double Delta_Angle(int a1, int a2);
-double Delta_Angle(double a1, double a2);
+double deltaAngle(int a1, int a2);
+	/**
+	 * @brief difference between two double angle
+	 * @param a1 first angle
+	 * @param a2 second angle
+	 * @return the difference [-180, 180]
+	 */
+	double deltaAngle(double const& a1, double const& a2);
 int Bisect_Angle(int angle1, int angle2);
 bool Cant_Turn_To_Goal();
 // Returns 0 if something got inside the safety distance, else 1.
