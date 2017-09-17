@@ -12,10 +12,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ======================================================================== */
-
 #ifndef VFH_NODE_H_
 #define VFH_NODE_H_
-
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Pose2D.h>
@@ -25,9 +23,7 @@
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
 #include "yuiwong/vfhplus.hpp"
-
 #define DEG2RAD(a) ((a) * M_PI / 180.0)
-
 class VFH_node
 {
 public:
@@ -36,7 +32,6 @@ public:
 	void update();
 private:
 	VFH_Algorithm *m_vfh;
-
 	double m_cell_size;			// 100 mm
 	int m_window_diameter;		// cells
 	int m_sector_angle;			// in deg
@@ -56,22 +51,17 @@ private:
 	double m_obs_cutoff_1ms;
 	double m_weight_desired_dir;
 	double m_weight_current_dir;
-
 	double m_robot_radius;
 	double m_robotVel;
     double m_laser_ranges[361][2];
-
 	int chosen_speed,chosen_turnrate;
-
 	// ros
     ros::NodeHandle nh_;
     ros::NodeHandle nh_private_;
     ros::Subscriber scan_subscriber_;
     ros::Subscriber odom_subscriber_;
     ros::Publisher  vel_publisher_;
-
     void scanCallback (const sensor_msgs::LaserScan::ConstPtr& scan_msg);
     void odomCallback (const nav_msgs::Odometry::ConstPtr& odom_msg);
 };
-
 #endif /* VFH_NODE_H_ */
