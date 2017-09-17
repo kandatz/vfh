@@ -180,21 +180,29 @@ struct Vfh {
 		double result[361][2]);
 	/** @brief start up the vfh+ algorithm */
 	void init();
-// Choose a new speed and turnrate based on the given laser data and current speed.
-//
-// Units/Senses:
-// - goal_direction in degrees, 0deg is to the right.
-// - goal_distance in mm.
-// - goal_distance_tolerance in mm.
-//
-int update(
-	std::array<double, 361> const& laserRanges,
-	int current_speed,
-	double goal_direction,
-	double goal_distance,
-	double goal_distance_tolerance,
-	int &chosen_speed,
-	int &chosen_turnrate);
+	/**
+	 * @brief update the vfh+ state using the laser readings and the robot
+	 * speed
+	 * @param laser_ranges the laser (or sonar) readings
+	 * @param current_speed the current robot speed
+	 * @param goal_direction the desired direction, in radian, 0 is to the
+	 * right
+	 * @param goal_distance the desired distance, in meter
+	 * @param goal_distance_tolerance the distance tolerance from the goal,
+	 * in meter
+	 * @param[out] chosenLinearX the chosen linear x velocity to drive the
+	 * robot, in meter/s
+	 * @param[out] chosenAngularZ the chosen turn rathe to drive the robot,
+	 * in radian/s
+	 */
+	void update(
+		std::array<double, 361> const& laserRanges,
+		int current_speed,
+		double const goal_direction,
+		double const goal_distance,
+		double const goal_distance_tolerance,
+		double& chosenLinearX,
+		double& chosenAngularZ);
 // Get methods
 int GetMinTurnrate() { return MIN_TURNRATE; }
 // Angle to goal, in degrees. 0deg is to our right.

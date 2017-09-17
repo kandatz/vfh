@@ -52,7 +52,6 @@ private:
 	double robot_radius;
 	double m_robotVel;
 	std::array<double, 361> laserRanges;
-	int chosen_speed,chosen_turnrate;
 	// ros
  ros::NodeHandle nh_;
  ros::NodeHandle nh_private_;

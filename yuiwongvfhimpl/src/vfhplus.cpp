@@ -391,121 +391,98 @@ this->SetCurrentMaxSpeed(MAX_SPEED);
 return(1);
 }
 /**
-* Update the VFH+ state using the laser readings and the robot speed
-* @param laser_ranges the laser (or sonar) readings
-* @param current_speed the current robot speed
-* @param goal_direction the desired direction
-* @param goal_distance the desired distance
-* @param goal_distance_tolerance the distance tolerance from the goal
-* @param chosen_speed the chosen speed to drive the robot
-* @param chosen_turnrate the chosen turn rathe to drive the robot
-* @return 1
-*/
-int Vfh::update(
+ * @brief update the vfh+ state using the laser readings and the robot speed
+ * @param laser_ranges the laser (or sonar) readings
+ * @param current_speed the current robot speed
+ * @param goal_direction the desired direction, in radian, 0 is to the right
+ * @param goal_distance the desired distance, in meter
+ * @param goal_distance_tolerance the distance tolerance from the goal, in
+ * meter
+ * @param[out] chosenLinearX the chosen linear x velocity to drive the robot,
+ * in meter/s
+ * @param[out] chosenAngularZ the chosen turn rathe to drive the robot, in
+ * radian/s
+ */
+void Vfh::update(
 	std::array<double, 361> const& laserRanges,
 	int current_speed,
-	double goal_direction,
-	double goal_distance,
-	double goal_distance_tolerance,
-	int &chosen_speed,
-	int &chosen_turnrate)
+	double const goal_direction,
+	double const goal_distance,
+	double const goal_distance_tolerance,
+	double& chosenLinearX,
+	double& chosenAngularZ)
 {
-int print = 0;
-this->Desired_Angle = goal_direction;
-this->Dist_To_Goal = goal_distance;
-this->Goal_Distance_Tolerance = goal_distance_tolerance;
-//
-// Set current_pos_speed to the maximum of
-// the set point (last_chosen_speed) and the current actual speed.
-// This ensures conservative behaviour if the set point somehow ramps up beyond
-// the actual speed.
-// Ensure that this speed is positive.
-//
-int current_pos_speed;
-if (current_speed < 0)
-{
-current_pos_speed = 0;
-}
-else
-{
-current_pos_speed = current_speed;
-}
-if (current_pos_speed < last_chosen_speed)
-{
-current_pos_speed = last_chosen_speed;
-}
-// printf("update: current_pos_speed = %d\n",current_pos_speed);
-// Work out how much time has elapsed since the last update,
-// so we know how much to increase speed by, given MAX_ACCELERATION.
-timeval now{ 0, 0 };
-timeval diff;
-double diffSeconds;
-// assert(GlobalTime->GetTime(&now) == 0);
-assert(gettimeofday(&now, 0) == 0);
-TIMESUB(&now, &last_update_time, &diff);
-diffSeconds = diff.tv_sec + ((double)diff.tv_usec / 1000000);
-last_update_time.tv_sec = now.tv_sec;
-last_update_time.tv_usec = now.tv_usec;
-// printf("update: Build_Primary_Polar_Histogram\n");
-if (Build_Primary_Polar_Histogram(laserRanges,current_pos_speed) == 0)
-{
-// Something's inside our safety distance: brake hard and
-// turn on the spot
-Picked_Angle = Last_Picked_Angle;
-Max_Speed_For_Picked_Angle = 0;
-Last_Picked_Angle = Picked_Angle;
-}
-else
-{
-print = 0;
-if (print) {
-printf("Primary Histogram\n");
-Print_Hist();
-}
-Build_Binary_Polar_Histogram(current_pos_speed);
-if (print) {
-printf("Binary Histogram\n");
-Print_Hist();
-}
-Build_Masked_Polar_Histogram(current_pos_speed);
-if (print) {
-printf("Masked Histogram\n");
-Print_Hist();
-}
-// Sets Picked_Angle, Last_Picked_Angle, and Max_Speed_For_Picked_Angle.
-Select_Direction();
-}
-// printf("Picked Angle: %f\n", Picked_Angle);
-//
-// OK, so now we've chosen a direction. Time to choose a speed.
-//
-// How much can we change our speed by?
-int speed_incr;
-if ((diffSeconds > 0.3) || (diffSeconds < 0))
-{
-// Either this is the first time we've been updated, or something's a bit screwy and
-// update hasn't been called for a while. Don't want a sudden burst of acceleration,
-// so better to just pick a small value this time, calculate properly next time.
-speed_incr = 10;
-}
-else
-{
-speed_incr = (int) (MAX_ACCELERATION * diffSeconds);
-}
-if (Cant_Turn_To_Goal())
-{
-// printf("The goal's too close -- we can't turn tightly enough to get to it, so slow down...");
-speed_incr = -speed_incr;
-}
-// Accelerate (if we're not already at Max_Speed_For_Picked_Angle).
-chosen_speed = MIN(last_chosen_speed + speed_incr, Max_Speed_For_Picked_Angle);
-// printf("Max Speed for picked angle: %d\n",Max_Speed_For_Picked_Angle);
-// Set the chosen_turnrate, and possibly modify the chosen_speed
-Set_Motion(chosen_speed, chosen_turnrate, current_pos_speed);
-last_chosen_speed = chosen_speed;
-if (print)
-printf("CHOSEN: SPEED: %d\t TURNRATE: %d\n", chosen_speed, chosen_turnrate);
-return(1);
+	this->Desired_Angle = RadianToDegree(goal_direction);
+	this->Dist_To_Goal = goal_distance * 1e3;
+	this->Goal_Distance_Tolerance = goal_distance_tolerance * 1e3;
+	// Set current_pos_speed to the maximum of
+	// the set point (last_chosen_speed) and the current actual speed.
+	// This ensures conservative behaviour if the set point somehow ramps up
+	// beyond the actual speed.
+	// Ensure that this speed is positive.
+	int current_pos_speed;
+	if (current_speed < 0) {
+		current_pos_speed = 0;
+	} else {
+		current_pos_speed = current_speed;
+	} if (current_pos_speed < last_chosen_speed) {
+		current_pos_speed = last_chosen_speed;
+	}
+	// printf("update: current_pos_speed = %d\n",current_pos_speed);
+	// Work out how much time has elapsed since the last update,
+	// so we know how much to increase speed by, given MAX_ACCELERATION.
+	timeval now{ 0, 0 };
+	timeval diff;
+	double diffSeconds;
+	// assert(GlobalTime->GetTime(&now) == 0);
+	assert(gettimeofday(&now, 0) == 0);
+	TIMESUB(&now, &last_update_time, &diff);
+	diffSeconds = diff.tv_sec + ((double)diff.tv_usec / 1000000);
+	last_update_time.tv_sec = now.tv_sec;
+	last_update_time.tv_usec = now.tv_usec;
+	// printf("update: Build_Primary_Polar_Histogram\n");
+	if (Build_Primary_Polar_Histogram(laserRanges,current_pos_speed) == 0) {
+		// Something's inside our safety distance: brake hard and
+		// turn on the spot
+		Picked_Angle = Last_Picked_Angle;
+		Max_Speed_For_Picked_Angle = 0;
+		Last_Picked_Angle = Picked_Angle;
+	} else {
+		Build_Binary_Polar_Histogram(current_pos_speed);
+		Build_Masked_Polar_Histogram(current_pos_speed);
+		// Sets Picked_Angle, Last_Picked_Angle, and Max_Speed_For_Picked_Angle
+		Select_Direction();
+	}
+	// printf("Picked Angle: %f\n", Picked_Angle);
+	// OK, so now we've chosen a direction. Time to choose a speed.
+	// How much can we change our speed by?
+	int speed_incr;
+	if ((diffSeconds > 0.3) || (diffSeconds < 0)) {
+		// Either this is the first time we've been updated, or something's
+		// a bit screwy and
+		// update hasn't been called for a while. Don't want a sudden burst of
+		// acceleration,
+		// so better to just pick a small value this time, calculate properly
+		// next time.
+		speed_incr = 10;
+	} else {
+		speed_incr = (int) (MAX_ACCELERATION * diffSeconds);
+	}
+	if (Cant_Turn_To_Goal()) {
+		// The goal's too close -- we can't turn tightly enough to
+		// get to it, so slow down...
+		speed_incr = -speed_incr;
+	}
+	// Accelerate (if we're not already at Max_Speed_For_Picked_Angle).
+	int chosenSpeed = MIN(
+		last_chosen_speed + speed_incr, Max_Speed_For_Picked_Angle);
+	// printf("Max Speed for picked angle: %d\n",Max_Speed_For_Picked_Angle);
+	// Set the chosen_turnrate, and possibly modify the chosen_speed
+	int chosenTurnrate = 0;
+	Set_Motion(chosenSpeed, chosenTurnrate, current_pos_speed);
+	chosenLinearX = chosenSpeed * 1e-3;
+	chosenAngularZ = NormalizeAngle(DegreeToRadian(chosenTurnrate));
+	last_chosen_speed = chosenSpeed;
 }
 /**
 * The robot going too fast, such does it overshoot before it can turn to the goal?

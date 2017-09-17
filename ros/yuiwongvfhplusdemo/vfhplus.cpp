@@ -13,7 +13,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ======================================================================== */
 #include "yuiwong/rosvfhplus.hpp"
-#define DEG2RAD(a) ((a) * M_PI / 180.0)
 namespace yuiwong
 {
 VFH_node::VFH_node(ros::NodeHandle nh, ros::NodeHandle nh_private):
@@ -146,18 +145,20 @@ void VFH_node::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 }
 void VFH_node::update(double const desiredAngle)
 {
-	double const desiredDist = 100000.0;
-	double const currGoalDistanceTolerance = 250;
+	double const desiredDist = 100.0;
+	double const currGoalDistanceTolerance = 0.250;
+	double chosenLinearX, chosenAngularZ;
 	m_vfh->update(
 		this->laserRanges,
 		(int)(m_robotVel),
-		(desiredAngle / M_PI * 180.0) + 90.0,
-		desiredDist, currGoalDistanceTolerance,
-		chosen_speed,
-		chosen_turnrate);
+		desiredAngle + (M_PI / 2.0),
+		desiredDist,
+		currGoalDistanceTolerance,
+		chosenLinearX,
+		chosenAngularZ);
 	geometry_msgs::TwistPtr vel(new geometry_msgs::Twist());
-	vel->linear.x = chosen_speed * 1e-3;
-	vel->angular.z = DEG2RAD(chosen_turnrate);
+	vel->linear.x = chosenLinearX;
+	vel->angular.z = chosenAngularZ;
 	vel_publisher_.publish(vel);
 	ROS_INFO(
 		"angular %lf -> linear x %lf, angular z %lf",
