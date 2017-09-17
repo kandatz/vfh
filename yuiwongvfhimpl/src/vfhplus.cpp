@@ -408,7 +408,7 @@ return(1);
 * @param chosen_turnrate the chosen turn rathe to drive the robot
 * @return 1
 */
-int VFH_Algorithm::Update_VFH(
+int VFH_Algorithm::update(
 	std::array<double, 361> const& laserRanges,
 	int current_speed,
 	double goal_direction,
@@ -441,7 +441,7 @@ if ( current_pos_speed < last_chosen_speed )
 {
 current_pos_speed = last_chosen_speed;
 }
-//  printf("Update_VFH: current_pos_speed = %d\n",current_pos_speed);
+//  printf("update: current_pos_speed = %d\n",current_pos_speed);
 // Work out how much time has elapsed since the last update,
 // so we know how much to increase speed by, given MAX_ACCELERATION.
 timeval now{ 0, 0 };
@@ -453,7 +453,7 @@ TIMESUB( &now, &last_update_time, &diff );
 diffSeconds = diff.tv_sec + ( (double)diff.tv_usec / 1000000 );
 last_update_time.tv_sec = now.tv_sec;
 last_update_time.tv_usec = now.tv_usec;
-//  printf("Update_VFH: Build_Primary_Polar_Histogram\n");
+//  printf("update: Build_Primary_Polar_Histogram\n");
 if ( Build_Primary_Polar_Histogram(laserRanges,current_pos_speed) == 0)
 {
 // Something's inside our safety distance: brake hard and

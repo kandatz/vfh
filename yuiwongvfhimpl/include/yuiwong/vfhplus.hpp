@@ -195,7 +195,7 @@ int Init();
 //  - goal_distance  in mm.
 //  - goal_distance_tolerance in mm.
 //
-int Update_VFH(
+int update(
 	std::array<double, 361> const& laserRanges,
 	int current_speed,
 	double goal_direction,

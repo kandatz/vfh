@@ -132,7 +132,7 @@ void VFH_node::update(double const desiredAngle)
 {
 	double const desiredDist = 100000.0;
 	double const currGoalDistanceTolerance = 250;
-	m_vfh->Update_VFH(
+	m_vfh->update(
 		this->laserRanges,
 		(int)(m_robotVel),
 		(desiredAngle / M_PI * 180.0) + 90.0,
