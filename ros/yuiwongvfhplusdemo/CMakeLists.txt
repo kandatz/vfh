@@ -1,15 +1,20 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(yuiwongvfhplusdemo)
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
+add_compile_options(-Wall -Wextra)
+add_compile_options(-Wundef)
+add_compile_options(-Wunreachable-code)
+add_compile_options(-Winline)
+add_compile_options(-Werror)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-)
+  roscpp)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(yuiwongvfhimpl REQUIRED)
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -97,9 +102,9 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
-  ${catkin_INCLUDE_DIRS}
-)
+  include
+  ${yuiwongvfhimpl_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS})
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/yuiwongvfhplusdemo.cpp
@@ -124,6 +129,12 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+add_executable(${PROJECT_NAME} vfhplus.cpp)
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME vfhplus
+  PREFIX "")
+target_link_libraries(${PROJECT_NAME}
+  ${yuiwongvfhimpl_LIBRARIES}
+  ${catkin_LIBRARIES})
 #############
 ## Install ##
 #############

@@ -1,9 +1,7 @@
-/*
- * Copyright (c) 2012, Stefano Rosa, Luca Carlone
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
+/* ========================================================================
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -11,11 +9,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-#include <vfh/vfh_node.h>
+ * ======================================================================== */
+#include "yuiwong/rosvfhplus.hpp"
 
 
 VFH_node::VFH_node(ros::NodeHandle nh, ros::NodeHandle nh_private):
@@ -117,7 +114,7 @@ void VFH_node::odomCallback (const nav_msgs::Odometry::ConstPtr& odom_msg)
 
 void VFH_node::scanCallback (const sensor_msgs::LaserScan::ConstPtr& scan_msg)
 {
-	ROS_DEBUG("scanCallback(): received scan, ranges %d",scan_msg->ranges.size());
+	ROS_DEBUG("scanCallback(): received scan, ranges %zu",scan_msg->ranges.size());
 
 	unsigned int n = scan_msg->ranges.size();
 	for (unsigned i = 0; i < 361; i++)
@@ -136,7 +133,7 @@ void VFH_node::scanCallback (const sensor_msgs::LaserScan::ConstPtr& scan_msg)
 		{
 			step = int(rays_per_degree * i);
 			// calculate position in laser frame
-			if (startIndex+step > n-1) // probably this is not necessary :/
+			if (startIndex+step > static_cast<int>(n)-1) // probably this is not necessary :/
 				step = step-1;
 
 			double r = scan_msg->ranges[startIndex+step]*1000.0;
