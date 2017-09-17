@@ -15,47 +15,47 @@
 #include "yuiwong/rosvfhplus.hpp"
 namespace yuiwong
 {
-VfhNode::VfhNode(ros::NodeHandle nh, ros::NodeHandle nh_private):
-nh_(nh), nh_private_(nh_private)
+VfhNode::VfhNode(ros::NodeHandle nh, ros::NodeHandle pnh):
+nh(nh), pnh(pnh)
 {
 	ROS_INFO("Starting VFH");
 	Vfh::Param p;
 	p.cell_size = 100;// mm, cell dimension
 	p.window_diameter = 60;// number of cells
 	p.sector_angle = 5;// deg, sector angle
-	if(!nh_private_.getParam("safety_dist_0ms", p.safety_dist_0ms))
+	if(!this->pnh.getParam("safety_dist_0ms", p.safety_dist_0ms))
 		p.safety_dist_0ms = 100;// mm, double, safe distance at 0 m/s
-	if(!nh_private_.getParam("safety_dist_1ms", p.safety_dist_1ms))
+	if(!this->pnh.getParam("safety_dist_1ms", p.safety_dist_1ms))
 		p.safety_dist_1ms = 100;// mm, double, safe distance at 1 m/s
-	if(!nh_private_.getParam("max_speed", p.max_speed))
+	if(!this->pnh.getParam("max_speed", p.max_speed))
 		p.max_speed = 200;// mm/sec, int, max speed
-	if(!nh_private_.getParam("max_speed_narrow_opening", p.max_speed_narrow_opening))
+	if(!this->pnh.getParam("max_speed_narrow_opening", p.max_speed_narrow_opening))
 		p.max_speed_narrow_opening = 200;// mm/sec, int, max speed in the narrow opening
-	if(!nh_private_.getParam("max_speed_wide_opening", p.max_speed_wide_opening))
+	if(!this->pnh.getParam("max_speed_wide_opening", p.max_speed_wide_opening))
 		p.max_speed_wide_opening = 300;// mm/sec, int, max speed in the wide opening
-	if(!nh_private_.getParam("max_acceleration", p.max_acceleration))
+	if(!this->pnh.getParam("max_acceleration", p.max_acceleration))
 		p.max_acceleration = 200;// mm/sec^2, int, max acceleration
-	if(!nh_private_.getParam("min_turnrate", p.min_turnrate))
+	if(!this->pnh.getParam("min_turnrate", p.min_turnrate))
 		p.min_turnrate = 40;// deg/sec, int, min turn rate <--- not used
-	if(!nh_private_.getParam("max_turnrate_0ms", p.max_turnrate_0ms))
+	if(!this->pnh.getParam("max_turnrate_0ms", p.max_turnrate_0ms))
 		p.max_turnrate_0ms = 40;// deg/sec, int, max turn rate at 0 m/s
-	if(!nh_private_.getParam("max_turnrate_1ms", p.max_turnrate_1ms))
+	if(!this->pnh.getParam("max_turnrate_1ms", p.max_turnrate_1ms))
 		p.max_turnrate_1ms = 40;// deg/sec, int, max turn rate at 1 m/s
 	p.min_turn_radius_safety_factor = 1.0;// double ????
-	if(!nh_private_.getParam("free_space_cutoff_0ms", p.free_space_cutoff_0ms))
+	if(!this->pnh.getParam("free_space_cutoff_0ms", p.free_space_cutoff_0ms))
 		p.free_space_cutoff_0ms = 2000000.0;//double, low threshold free space at 0 m/s
-	if(!nh_private_.getParam("obs_cutoff_0ms", p.obs_cutoff_0ms))
+	if(!this->pnh.getParam("obs_cutoff_0ms", p.obs_cutoff_0ms))
 		p.obs_cutoff_0ms = 4000000.0;//double, high threshold obstacle at 0 m/s
-	if(!nh_private_.getParam("free_space_cutoff_1ms", p.free_space_cutoff_1ms))
+	if(!this->pnh.getParam("free_space_cutoff_1ms", p.free_space_cutoff_1ms))
 		p.free_space_cutoff_1ms = 2000000.0;//double, low threshold free space at 1 m/s
-	if(!nh_private_.getParam("obs_cutoff_1ms", p.obs_cutoff_1ms))
+	if(!this->pnh.getParam("obs_cutoff_1ms", p.obs_cutoff_1ms))
 		p.obs_cutoff_1ms = 4000000.0;//double, high threshold obstacle at 1 m/s
-	if(!nh_private_.getParam("weight_desired_dir", p.weight_desired_dir))
+	if(!this->pnh.getParam("weight_desired_dir", p.weight_desired_dir))
 		p.weight_desired_dir = 5.0;//double, weight desired direction
-	if(!nh_private_.getParam("weight_current_dir", p.weight_current_dir))
+	if(!this->pnh.getParam("weight_current_dir", p.weight_current_dir))
 		p.weight_current_dir = 1.0;//double, weight current direction
 	double robot_radius;
-	if(!nh_private_.getParam("robot_radius", robot_radius))
+	if(!this->pnh.getParam("robot_radius", robot_radius))
 		robot_radius = 300.0;// robot radius in mm
 	this->vfh = boost::make_shared<Vfh>(p);
 	this->vfh->setRobotRadius(robot_radius);
@@ -64,34 +64,34 @@ nh_(nh), nh_private_(nh_private)
 	this->desiredVelocity.stamp = 0;
 	// subscribe to topics
 	std::string scanTopic("");
-	this->nh_private_.param<std::string>("scan_topic", scanTopic, "/scan");
+	this->pnh.param<std::string>("scan_topic", scanTopic, "/scan");
 	if(scanTopic.length() <= 0) {
 		throw std::logic_error("scan topic is empty");
 	}
-	scan_subscriber_ = this->nh_.subscribe(
+	scanSubscriber = this->nh.subscribe(
 		scanTopic, 1, &VfhNode::scanCallback, this);
 	std::string odomTopic("");
-	this->nh_private_.param<std::string>("odom_topic", odomTopic, "/odom");
+	this->pnh.param<std::string>("odom_topic", odomTopic, "/odom");
 	if(odomTopic.length() <= 0) {
 		throw std::logic_error("odom topic is empty");
 	}
-	odom_subscriber_ = this->nh_.subscribe(
+	odomSubscriber = this->nh.subscribe(
 		odomTopic, 1, &VfhNode::odomCallback, this);
 	// cmd_vel publisher
 	std::string t("");
-	this->nh_private_.param<std::string>("topic", t, "/cmd_vel");
-	this->vel_publisher_ = this->nh_.advertise<geometry_msgs::Twist>(
+	this->pnh.param<std::string>("topic", t, "/cmd_vel");
+	this->velPublisher = this->nh.advertise<geometry_msgs::Twist>(
 		t, sizeof(size_t));
 }
 VfhNode::~VfhNode()
 {
-	this->scan_subscriber_.shutdown();
-	this->odom_subscriber_.shutdown();
+	this->scanSubscriber.shutdown();
+	this->odomSubscriber.shutdown();
 	/* stop the robot */
 	geometry_msgs::TwistPtr vel(new geometry_msgs::Twist());
 	vel->linear.x = 0.0;
 	vel->angular.z = 0.0;
-	vel_publisher_.publish(vel);
+	velPublisher.publish(vel);
 }
 void VfhNode::odomCallback(nav_msgs::OdometryConstPtr const& odom)
 {
@@ -145,7 +145,7 @@ void VfhNode::update(double const desiredAngle)
 	geometry_msgs::TwistPtr vel(new geometry_msgs::Twist());
 	vel->linear.x = chosenLinearX;
 	vel->angular.z = chosenAngularZ;
-	vel_publisher_.publish(vel);
+	velPublisher.publish(vel);
 	ROS_INFO(
 		"angular %lf -> linear x %lf, angular z %lf",
 		desiredAngle,
@@ -157,8 +157,8 @@ int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "VFH");
 	ros::NodeHandle nh;
-	ros::NodeHandle nh_private("~");
-	yuiwong::VfhNode vfhnode(nh,nh_private);
+	ros::NodeHandle pnh("~");
+	yuiwong::VfhNode vfhnode(nh,pnh);
 	ros::spin();
 	return 0;
 }

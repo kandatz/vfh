@@ -12,8 +12,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ======================================================================== */
-#ifndef VFH_NODE_H_
-#define VFH_NODE_H_
+#ifndef YUIWONGVFHPLUSDEMO_VFPPLUS_HPP
+#define YUIWONGVFHPLUSDEMO_VFPPLUS_HPP
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Pose2D.h>
@@ -25,18 +25,18 @@
 #include "yuiwong/vfhplus.hpp"
 namespace yuiwong {
 struct VfhNode {
-	VfhNode(ros::NodeHandle nh, ros::NodeHandle nh_private);
+	VfhNode(ros::NodeHandle nh, ros::NodeHandle pnh);
 	~VfhNode();
 	void update(double const desiredAngle);
 private:
 	boost::shared_ptr<Vfh> vfh;
 	double robotLinearX;/* meter/s */
 	std::array<double, 361> laserRanges;
-	ros::NodeHandle nh_;
-	ros::NodeHandle nh_private_;
-	ros::Subscriber scan_subscriber_;
-	ros::Subscriber odom_subscriber_;
-	ros::Publisher vel_publisher_;
+	ros::NodeHandle nh;
+	ros::NodeHandle pnh;
+	ros::Subscriber scanSubscriber;
+	ros::Subscriber odomSubscriber;
+	ros::Publisher velPublisher;
 	void scanCallback(sensor_msgs::LaserScanConstPtr const& scan);
 	void odomCallback(nav_msgs::OdometryConstPtr const& odom);
 	struct {
@@ -45,4 +45,4 @@ private:
 	} desiredVelocity;
 };
 }
-#endif /* VFH_NODE_H_ */
+#endif /* YUIWONGVFHPLUSDEMO_VFPPLUS_HPP */
