@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(yuiwongvfhimpl REQUIRED)
+find_package(yuiwongcppbase REQUIRED)
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -134,6 +135,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME vfhplus
   PREFIX "")
 target_link_libraries(${PROJECT_NAME}
   ${yuiwongvfhimpl_LIBRARIES}
+  ${yuiwongcppbase_LIBRARIES}
   ${catkin_LIBRARIES})
 #############
 ## Install ##

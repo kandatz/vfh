@@ -17,16 +17,9 @@
 #include <assert.h>
 #include <math.h>
 #include <iostream>
+#include "yuiwong/time.hpp"
 #include "yuiwong/angle.hpp"
 #define DTOR(d) ((d) * M_PI / 180)
-#define TIMESUB(a, b, result) do { \
-		(result)->tv_sec = (a)->tv_sec - (b)->tv_sec; \
-		(result)->tv_usec = (a)->tv_usec - (b)->tv_usec; \
-		if ((result)->tv_usec < 0) { \
-			--(result)->tv_sec; \
-			(result)->tv_usec += 1000000; \
-		} \
-	} while (0)
 namespace yuiwong
 {
 /**
@@ -75,6 +68,7 @@ VfhPlus::VfhPlus(Param const& param):
 	desiredDirection(90),
 	pickedDirection(90),
 	lastPickedDirection(pickedDirection),
+	lastUpdateTime(-1.0),
 	lastChosenLinearX(0)
 {
 this->Last_Binary_Hist = nullptr;
@@ -158,14 +152,14 @@ return val;
 * @param speed given speed
 * @return the safety distance
 */
-int
-VfhPlus::Get_Safety_Dist(int speed)
+int VfhPlus::Get_Safety_Dist(int speed)
 {
-int val = (int) (SAFETY_DIST_0MS + (int)(speed*(SAFETY_DIST_1MS-SAFETY_DIST_0MS)/1000.0));
-if (val < 0)
-val = 0;
-// printf("Safety_Dist at %dmm/s: %d\n",speed,val);
-return val;
+	int val = (int) (SAFETY_DIST_0MS + (int)(speed*(SAFETY_DIST_1MS-SAFETY_DIST_0MS)/1000.0));
+	if (val < 0) {
+		val = 0;
+	}
+	// printf("Safety_Dist at %dmm/s: %d\n",speed,val);
+	return val;
 }
 // AB: Could optimize this with a look-up table, but it shouldn't make much
 // difference: only gets called once per sector per update.
@@ -342,7 +336,7 @@ void VfhPlus::init()
 	}
 	}
 	}
-	gettimeofday(&lastUpdateTime,0);
+	this->lastUpdateTime = NowSecond();
 }
 /**
 * Allocate the VFH+ memory
@@ -408,6 +402,9 @@ void VfhPlus::update(
 	double& chosenLinearX,
 	double& chosenAngularZ)
 {
+	double const now = NowSecond();
+	double const diffSeconds = now - this->lastUpdateTime;
+	this->lastUpdateTime = now;
 	this->desiredDirection = RadianToDegree(goalDirection + (M_PI / 2.0));
 	this->goaldist = goalDistance * 1e3;
 	this->goaldistTolerance = goalDistanceTolerance * 1e3;
@@ -428,14 +425,6 @@ void VfhPlus::update(
 	// printf("update: currentPoseSpeed = %d\n",currentPoseSpeed);
 	// Work out how much time has elapsed since the last update,
 	// so we know how much to increase speed by, given MAX_ACCELERATION.
-	timeval now{ 0, 0 };
-	timeval diff;
-	double diffSeconds;
-	::gettimeofday(&now, 0);
-	TIMESUB(&now, &lastUpdateTime, &diff);
-	diffSeconds = diff.tv_sec + ((double)diff.tv_usec / 1e6);
-	lastUpdateTime.tv_sec = now.tv_sec;
-	lastUpdateTime.tv_usec = now.tv_usec;
 	// printf("update: buildPrimaryPolarHistogram\n");
 	if (buildPrimaryPolarHistogram(laserRanges,currentPoseSpeed) == 0) {
 		// Something's inside our safety distance: brake hard and
@@ -469,7 +458,7 @@ void VfhPlus::update(
 	if (DoubleCompare(::fabs(speedIncr), 1e-4) <= 0) {
 		speedIncr = 1e-4;
 	}
-	if (cantTurnToGoal()) {
+	if (this->cantTurnToGoal()) {
 		// The goal's too close -- we can't turn tightly enough to
 		// get to it, so slow down...
 		speedIncr = -speedIncr;
@@ -995,31 +984,29 @@ return(1);
 }
 /**
  * @brief set the motion commands
- * @param speed the desire speed
+ * @param speed the desire speed, meter/s
  * @param turnrate the desire turn rate
- * @param actual_speed the current speed, mm/s
+ * @param actualSpeed the current speed, mm/s
  */
 void VfhPlus::setMotion(double& linearX, int& turnrate, int const actualSpeed)
 {
-	// this happens if all directions blocked, so just spin in place
+	int const mx = this->GetMaxTurnrate(actualSpeed);
+	/* this happens if all directions blocked, so just spin in place */
 	if (DoubleCompare(linearX) <= 0) {
-		turnrate = this->GetMaxTurnrate(actualSpeed);
+		turnrate = mx;
 		linearX = 0;
-		return;
-	}
-	if ((pickedDirection > 270) && (pickedDirection < 360)) {
-		turnrate = -1 * GetMaxTurnrate(actualSpeed);
+	} else if ((pickedDirection > 270) && (pickedDirection < 360)) {
+		turnrate = -mx;
 	} else if ((pickedDirection < 270) && (pickedDirection > 180)) {
-		turnrate = GetMaxTurnrate(actualSpeed);
+		turnrate = mx;
 	} else {
-		turnrate = (int)rint(((double)(pickedDirection - 90) / 75.0)
-			* GetMaxTurnrate(actualSpeed));
-		if (turnrate > GetMaxTurnrate(actualSpeed)) {
-			turnrate = GetMaxTurnrate(actualSpeed);
-		} else if (turnrate < (-1 * GetMaxTurnrate(actualSpeed))) {
-			turnrate = -1 * GetMaxTurnrate(actualSpeed);
+		turnrate = (int)rint(((double)(pickedDirection - 90) / 75.0) * mx);
+		if (::std::abs(turnrate) > mx) {
+			turnrate = ::copysign(mx, turnrate);
 		}
 	}
+	/*std::cout << "mx " << mx << " pickedDirection " << pickedDirection
+		<< " tr " << turnrate << "\n";*/
 }
 std::array<double, 361> VfhPlus::convertScan(
 	std::vector<float> const ranges,

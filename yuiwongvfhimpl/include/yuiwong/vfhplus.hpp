@@ -322,7 +322,7 @@ double *Last_Binary_Hist;
 // Minimum turning radius at different speeds, in millimeters
 std::vector<int> Min_Turning_Radius;
 	// Keep track of last update, so we can monitor acceleration
-	timeval lastUpdateTime;
+	double lastUpdateTime;
 	double lastChosenLinearX;/* meter/s */
 };
 }
