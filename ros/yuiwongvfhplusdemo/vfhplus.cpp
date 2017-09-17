@@ -54,8 +54,8 @@ nh_(nh), nh_private_(nh_private)
 		m_weight_desired_dir = 5.0;				//double, weight desired direction
 	if(!nh_private_.getParam("m_weight_current_dir", m_weight_current_dir))
 		m_weight_current_dir = 1.0;				//double, weight current direction
-	if(!nh_private_.getParam("m_robot_radius", m_robot_radius))
-		m_robot_radius = 300.0;					// robot radius in mm
+	if(!nh_private_.getParam("robot_radius", robot_radius))
+		robot_radius = 300.0;					// robot radius in mm
 	Vfh::Param const param {
 		this->m_cell_size,
 		this->m_window_diameter,
@@ -77,7 +77,7 @@ nh_(nh), nh_private_(nh_private)
 		this->m_weight_current_dir,
 	};
 	this->m_vfh = new Vfh(param);
-	m_vfh->SetRobotRadius(m_robot_radius);
+	m_vfh->setRobotRadius(robot_radius);
 	m_vfh->Init();
 	this->desiredVelocity.angle = 0;
 	this->desiredVelocity.stamp = 0;

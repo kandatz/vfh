@@ -49,7 +49,7 @@ private:
 	double m_obs_cutoff_1ms;
 	double m_weight_desired_dir;
 	double m_weight_current_dir;
-	double m_robot_radius;
+	double robot_radius;
 	double m_robotVel;
 	std::array<double, 361> laserRanges;
 	int chosen_speed,chosen_turnrate;

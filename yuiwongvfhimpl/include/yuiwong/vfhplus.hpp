@@ -215,8 +215,9 @@ double GetPickedAngle() { return Picked_Angle; }
 // Max Turnrate depends on speed
 int GetMaxTurnrate( int speed );
 int GetCurrentMaxSpeed() { return Current_Max_Speed; }
-// Set methods
-void SetRobotRadius( double robot_radius ) { this->ROBOT_RADIUS = robot_radius; }
+	inline void setRobotRadius(double const robot_radius) {
+		this->ROBOT_RADIUS = robot_radius;
+	}
 void SetMinTurnrate( int min_turnrate ) { MIN_TURNRATE = min_turnrate; }
 void SetCurrentMaxSpeed( int Current_Max_Speed );
 // The Histogram.
