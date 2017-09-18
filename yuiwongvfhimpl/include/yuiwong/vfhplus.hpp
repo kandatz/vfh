@@ -204,14 +204,17 @@ struct VfhPlus {
 		double const goalDistanceTolerance,
 		double& chosenLinearX,
 		double& chosenAngularZ);
-// Get methods
-int GetMinTurnrate() { return MIN_TURNRATE; }
-// Angle to goal, in degrees. 0deg is to our right.
-double GetDesiredAngle() { return desiredDirection; }
-double GetPickedAngle() { return pickedDirection; }
-// Max Turnrate depends on speed
-int GetMaxTurnrate(int speed);
-int GetCurrentMaxSpeed() { return Current_Max_Speed; }
+	inline int getMinTurnrate() const { return this->MIN_TURNRATE; }
+	/** @brief angle to goal, in degrees. 0deg is to our right */
+	inline double getDesiredAngle() const { return this->desiredDirection; }
+	inline double getPickedAngle() const { return this->pickedDirection; }
+	/**
+	 * @brief get the max turn rate at the given speed
+	 * @param speed current speed, mm/s
+	 * @return max turn rate in degree
+	 */
+	int getMaxTurnrate(int const speed) const;
+	int GetCurrentMaxSpeed() { return Current_Max_Speed; }
 	inline void setRobotRadius(double const robot_radius) {
 		this->ROBOT_RADIUS = robot_radius;
 	}

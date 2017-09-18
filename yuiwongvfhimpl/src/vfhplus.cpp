@@ -95,11 +95,11 @@ if(this->Last_Binary_Hist)
 delete[] Last_Binary_Hist;
 }
 /**
-* Get the max turn rate at the given speed
-* @param speed current speed
-* @return max turn rate
-*/
-int VfhPlus::GetMaxTurnrate(int speed)
+ * @brief get the max turn rate at the given speed
+ * @param speed current speed, mm/s
+ * @return max turn rate in degree
+ */
+int VfhPlus::getMaxTurnrate(int const speed) const
 {
 int val = (MAX_TURNRATE_0MS - (int)(speed*(MAX_TURNRATE_0MS-MAX_TURNRATE_1MS)/1000.0));
 if (val < 0)
@@ -127,7 +127,7 @@ double dx, dtheta;
 for(int x = 0;x<= Current_Max_Speed;x++)
 {
 dx = (double) x / 1e6; // dx in m/millisec
-dtheta = ((M_PI/180)*(double)(GetMaxTurnrate(x))) / 1000.0; // dTheta in radians/millisec
+dtheta = ((M_PI/180)*(double)(getMaxTurnrate(x))) / 1000.0; // dTheta in radians/millisec
 Min_Turning_Radius[x] = (int) (((dx / tan(dtheta))*1000.0) * MIN_TURN_RADIUS_SAFETY_FACTOR); // in mm
 }
 }
@@ -990,7 +990,7 @@ return(1);
  */
 void VfhPlus::setMotion(double& linearX, int& turnrate, int const actualSpeed)
 {
-	int const mx = this->GetMaxTurnrate(actualSpeed);
+	int const mx = this->getMaxTurnrate(actualSpeed);
 	/* this happens if all directions blocked, so just spin in place */
 	if (DoubleCompare(linearX) <= 0) {
 		turnrate = mx;
