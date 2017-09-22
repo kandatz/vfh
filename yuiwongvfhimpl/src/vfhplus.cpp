@@ -418,7 +418,8 @@ void VfhPlus::update(
 		currentPoseSpeed = 0;
 	} else {
 		currentPoseSpeed = currentLinearX * 1e3;
-	} if (DoubleCompare(currentPoseSpeed, this->lastChosenLinearX * 1e3)
+	}
+	if (DoubleCompare(currentPoseSpeed, this->lastChosenLinearX * 1e3)
 		< 0) {
 		currentPoseSpeed = this->lastChosenLinearX * 1e3;
 	}
