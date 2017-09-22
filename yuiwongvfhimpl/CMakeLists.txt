@@ -75,7 +75,8 @@ include_directories(include
   ${yuiwonggeometry_INCLUDE_DIRS})
 ##
 set(SRC
-  src/vfhplus.cpp)
+  src/vfhplus.cpp
+  src/vfhstar.cpp)
 add_library(${PROJECT_NAME} SHARED ${SRC})
 add_library(${PROJECT_NAME}_static ${SRC})
 # 指定静态库的输出名称
