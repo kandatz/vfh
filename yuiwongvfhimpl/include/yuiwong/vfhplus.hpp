@@ -12,8 +12,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ======================================================================== */
-#ifndef YUIWONGVFHPLUS_VFPPLUS_HPP
-#define YUIWONGVFHPLUS_VFPPLUS_HPP
+#ifndef YUIWONGVFHIMPL_VFPPLUS_HPP
+#define YUIWONGVFHIMPL_VFPPLUS_HPP 1
 #include <sys/time.h>
 #include <stdio.h>
 #include <vector>
