@@ -1009,7 +1009,7 @@ void VfhPlus::setMotion(double& linearX, int& turnrate, int const actualSpeed)
 	/*std::cout << "mx " << mx << " pickedDirection " << pickedDirection
 		<< " tr " << turnrate << "\n";*/
 }
-std::array<double, 361> VfhPlus::convertScan(
+std::array<double, 361>& VfhPlus::convertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
 	double const angleMax,

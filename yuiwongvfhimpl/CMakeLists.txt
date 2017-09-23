@@ -75,6 +75,7 @@ include_directories(include
   ${yuiwonggeometry_INCLUDE_DIRS})
 ##
 set(SRC
+  src/vfh.cpp
   src/vfhplus.cpp
   src/vfhstar.cpp)
 add_library(${PROJECT_NAME} SHARED ${SRC})

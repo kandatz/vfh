@@ -24,7 +24,20 @@ VfhStar::Param::Param():
 	cellWidth(0.1),
 	windowDiameter(60),
 	sectorAngle(DegreeToRadian(5)),
+	maxSpeed(0.4),
+	maxSpeedNarrowOpening(5e-2),
+	maxSpeedWideOpening(0.4),
+	zeroSafetyDistance(1e-2),
+	maxSafetyDistance(0.3),
+	zeroMaxTurnrate(DegreeToRadian(80)),
+	maxMaxTurnrate(DegreeToRadian(40)),
+	zeroFreeSpaceCutoff(4e6),
+	maxFreeSpaceCutoff(2e6),
+	zeroObsCutoff(4e6),
+	maxObsCutoff(2e6),
 	maxAcceleration(0.1),
+	desiredDirectionWeight(5.0),
+	currentDirectionWeight(1.0),
 	minTurnRadiusSafetyFactor(1.0),
 	robotRadius(0.2) {}
 VfhStar::VfhStar(Param const& param):
@@ -34,17 +47,17 @@ VfhStar::VfhStar(Param const& param):
 	maxSpeed(param.maxSpeed),
 	maxSpeedNarrowOpening(param.maxSpeedNarrowOpening),
 	maxSpeedWideOpening(param.maxSpeedWideOpening),
-	safetyDistance0ms(param.safetyDistance0ms),
-	safetyDistance1ms(param.safetyDistance1ms),
-	maxTurnrate0ms(param.maxTurnrate0ms),
-	maxTurnrate1ms(param.maxTurnrate1ms),
-	binaryHistogramLow0ms(param.binaryHistogramLow0ms),
-	binaryHistogramHigh0ms(param.binaryHistogramHigh0ms),
-	binaryHistogramLow1ms(param.binaryHistogramLow1ms),
-	binaryHistogramHigh1ms(param.binaryHistogramHigh1ms),
+	zeroSafetyDistance(param.zeroSafetyDistance),
+	maxSafetyDistance(param.maxSafetyDistance),
+	zeroMaxTurnrate(param.zeroMaxTurnrate),
+	maxMaxTurnrate(param.maxMaxTurnrate),
+	zeroFreeBinaryHistogram(param.zeroFreeSpaceCutoff),
+	maxFreeBinaryHistogram(param.maxFreeSpaceCutoff),
+	zeroObsBinaryHistogram(param.zeroObsCutoff),
+	maxObsBinaryHistogram(param.maxObsCutoff),
 	maxAcceleration(param.maxAcceleration),
-	u1(param.u1),
-	u2(param.u2),
+	desiredDirectionWeight(param.desiredDirectionWeight),
+	currentDirectionWeight(param.currentDirectionWeight),
 	minTurnRadiusSafetyFactor(param.minTurnRadiusSafetyFactor),
 	robotRadius(param.robotRadius) {}
 /** @brief start up the vfh* algorithm */
@@ -57,23 +70,27 @@ void VfhStar::init()
 	 * it works now
 	 * let's leave the verbose debug statement out
 	 */
-	/*YUIWONGLOGNDEBU(
+	YUIWONGLOGNDEBU(
 		"VfhStar",
 		"cellWidth %1.1lf windowDiameter %d sectorAngle %lf "
-		"robotRadius %1.1lf safetyDistance %1.1lf maxSpeed %d "
-		"maxTurnrate %d free space cutoff %1.1lf obstacle cutoff %1.1lf "
-		"weight desired direction %1.1lf\tweight current direction %1.1lf\n",
+		"robotRadius %1.1lf safetyDistance %lf %lf maxSpeed %lf "
+		"maxTurnrate %lf %lf freespace cutoff %lf %lf obstacle cutoff %lf %lf"
+		"desired direction weight %lf current direction weight %lf",
 		this->cellWidth,
 		this->windowDiameter,
 		this->sectorAngle,
 		this->robotRadius,
-		this->safetyDistance,
+		this->zeroSafetyDistance,
+		this->maxSafetyDistance,
 		this->maxSpeed,
-		this->maxTurnrate,
-		this->binaryHistogramLow,
-		this->binaryHistogramHigh,
-		this->u1,
-		this->u2);*/
+		this->zeroMaxTurnrate,
+		this->maxMaxTurnrate,
+		this->zeroFreeBinaryHistogram,
+		this->maxFreeBinaryHistogram,
+		this->zeroObsBinaryHistogram,
+		this->maxObsBinaryHistogram,
+		this->desiredDirectionWeight,
+		this->currentDirectionWeight);
 	this->allocate();
 	std::fill(this->histogram.begin(), this->histogram.end(), 0);
 	std::fill(
@@ -378,8 +395,8 @@ void VfhStar::update(
  */
 int VfhStar::getSafetyDistance(double const speed) const
 {
-	double d = this->safetyDistance0ms + (speed
-		* (this->safetyDistance1ms - this->safetyDistance0ms));
+	double d = this->zeroSafetyDistance + (speed
+		* (this->maxSafetyDistance - this->zeroSafetyDistance));
 	if (DoubleCompare(d) < 0) {
 		d = 0;
 	}
@@ -417,8 +434,8 @@ void VfhStar::setCurrentMaxSpeed(double const maxSpeed)
  */
 double VfhStar::getMaxTurnrate(double const speed) const
 {
-	double val = this->maxTurnrate0ms - (speed
-		* (this->maxTurnrate0ms - this->maxTurnrate1ms));
+	double val = this->zeroMaxTurnrate - (speed
+		* (this->zeroMaxTurnrate - this->maxMaxTurnrate));
 	if (DoubleCompare(val) < 0) {
 		val = 0;
 	}
@@ -489,10 +506,10 @@ void VfhStar::buildBinaryPolarHistogram(double const speed)
 {
 	for (int x = 0; x < this->histogramSize; ++x) {
 		if (DoubleCompare(
-			this->histogram[x], this->getBinaryHistogramHigh(speed)) > 0) {
+			this->histogram[x], this->getObsBinaryHistogram(speed)) > 0) {
 			this->histogram[x] = 1.0;
 		} else if (DoubleCompare(
-			this->histogram[x], this->getBinaryHistogramLow(speed)) < 0) {
+			this->histogram[x], this->getFreeBinaryHistogram(speed)) < 0) {
 			this->histogram[x] = 0.0;
 		} else {
 			this->histogram[x] = this->lastBinaryHistogram[x];
@@ -804,24 +821,24 @@ bool VfhStar::calculateCellsMagnitude(
 	return true;
 }
 /**
- * @brief get the current low binary histogram threshold
+ * @brief get the current low binary histogram threshold, free
  * @param speed given speed, m/s
  * @return the threshold
  */
-double VfhStar::getBinaryHistogramLow(double const speed) const
+double VfhStar::getFreeBinaryHistogram(double const speed) const
 {
-	return this->binaryHistogramLow0ms - (speed
-		* (this->binaryHistogramLow0ms - this->binaryHistogramLow1ms));
+	return this->zeroFreeBinaryHistogram - (speed
+		* (this->zeroFreeBinaryHistogram - this->maxFreeBinaryHistogram));
 }
 /**
- * @brief get the current high binary histogram threshold
+ * @brief get the current high binary histogram threshold, obs
  * @param speed given speed, m/s
  * @return the threshold
  */
-double VfhStar::getBinaryHistogramHigh(double const speed) const
+double VfhStar::getObsBinaryHistogram(double const speed) const
 {
-	return this->binaryHistogramHigh0ms - (speed *
-		(this->binaryHistogramHigh0ms - this->binaryHistogramHigh1ms));
+	return this->zeroObsBinaryHistogram - (speed *
+		(this->zeroObsBinaryHistogram - this->maxObsBinaryHistogram));
 }
 /**
  * @brief select the candidate angle to decide the direction using the
@@ -842,9 +859,10 @@ void VfhStar::selectCandidateAngle()
 	this->pickedDirection = HPi;
 	double minweight = std::numeric_limits<double>::max();
 	for (auto const& ca: this->candidateAngle) {
-		double const weight = this->u1 * ::fabs(DeltaAngle(
-			this->desiredDirection, ca))
-			+ this->u2 * ::fabs(DeltaAngle(this->lastPickedDirection, ca));
+		double const weight = this->desiredDirectionWeight * ::fabs(
+			DeltaAngle(this->desiredDirection, ca))
+			+ this->currentDirectionWeight * ::fabs(DeltaAngle(
+			this->lastPickedDirection, ca));
 		if (DoubleCompare(weight, minweight) < 0) {
 			minweight = weight;
 			this->pickedDirection = ca;

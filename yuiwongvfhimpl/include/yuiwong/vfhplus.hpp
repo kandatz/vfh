@@ -164,7 +164,7 @@ struct VfhPlus {
 	};
 	VfhPlus(Param const& param);
 	virtual ~VfhPlus();
-	static std::array<double, 361> convertScan(
+	static std::array<double, 361>& convertScan(
 		std::vector<float> const ranges,
 		double const angleMin,
 		double const angleMax,

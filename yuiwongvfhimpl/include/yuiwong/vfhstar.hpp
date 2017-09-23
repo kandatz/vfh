@@ -39,20 +39,78 @@ struct VfhStar {
 		 * default: DegreeToRadian(5) radians
 		 */
 		double sectorAngle;
-		double maxSpeed;/* in m/s */
-		double maxSpeedNarrowOpening;/* m/s */
-		double maxSpeedWideOpening;/* m/s */
-		double safetyDistance0ms;/* in meters */
-		double safetyDistance1ms;/* in meters */
-		double maxTurnrate0ms;/* radians/s */
-		double maxTurnrate1ms;/* radians/s */
-		double binaryHistogramLow0ms;
-		double binaryHistogramHigh0ms;
-		double binaryHistogramLow1ms;
-		double binaryHistogramHigh1ms;
-		double maxAcceleration;/* in m/s^2, default 0.1 m/s^2 */
-		double u1;
-		double u2;
+		/**
+		 * @param maxSpeed the maximum allowable speed of the robot, in m/s,
+		 * default 0.4 m/s
+		 */
+		double maxSpeed;
+		/**
+		 * @param maxSpeedNarrowOpening
+		 * the maximum allowable speed of the robot through a narrow opening
+		 * in m/s, default 5e-2 m/s
+		 */
+		double maxSpeedNarrowOpening;
+		/**
+		 * @param maxSpeedWideOpening
+		 * the maximum allowable speed of the robot through a wide opening
+		 * in m/s, default 0.4 m/s
+		 */
+		double maxSpeedWideOpening;
+		/**
+		 * @param zeroSafetyDistance
+		 * the minimum distance the robot is allowed to get to obstacles when
+		 * stopped, in meters, default 1e-2 meters
+		 * @note maxSafetyDistance should >= zeroSafetyDistance
+		 */
+		double zeroSafetyDistance;
+		/**
+		 * @param maxSafetyDistance
+		 * the minimum distance the robot is allowed to get to obstacles when
+		 * travelling at max linear velocity, in meters, default 0.3 meters
+		 */
+		double maxSafetyDistance;
+		/**
+		 * @param zeroMaxTurnrate
+		 * the maximum allowable turnrate of the robot when stopped,
+		 * in radians/s, default DegreeToRadian(80) radians/s
+		 * @note "zero" should >= "max"
+		 */
+		double zeroMaxTurnrate;
+		/**
+		 * @param maxMaxTurnrate
+		 * the maximum allowable turnrate of the robot when travelling at
+		 * max linear velocity,
+		 * in radians/s, default DegreeToRadian(40)
+		 */
+		double maxMaxTurnrate;
+		/**
+		 * @param zeroFreeSpaceCutoff
+		 * unitless value. the higher the value, the closer the robot will
+		 * get to obstacles before avoiding (while stopped), default 4e6
+		 * @note
+		 * - free should >= obs
+		 * - "zero" should >= "max"
+		 */
+		double zeroFreeSpaceCutoff;
+		/**
+		 * @param maxFreeSpaceCutoff
+		 * unitless value. the higher the value, the closer the robot will
+		 * get to obstacles before avoiding (while travelling at 1 m/s),
+		 * default 2e6
+		 */
+		double maxFreeSpaceCutoff;
+		/** @param zeroObsCutoff unitless value, default 4e6 */
+		double zeroObsCutoff;
+		/** @param maxObsCutoff, unitless value, default 2e6 */
+		double maxObsCutoff;
+		/**
+		 * @param maxAcceleration,
+		 * the maximum allowable acceleration of the robot, in m/s^2,
+		 * default 0.1 m/s^2
+		 */
+		double maxAcceleration;
+		double desiredDirectionWeight;/* default 5.0 */
+		double currentDirectionWeight;/* default 1.0 */
 		double minTurnRadiusSafetyFactor;/* default 1.0 */
 		/** @param robotRadius, in meters, default 0.2 meters */
 		double robotRadius;
@@ -87,6 +145,9 @@ struct VfhStar {
 		double const goalDistanceTolerance,
 		double& chosenLinearX,
 		double& chosenAngularZ);
+	inline void setRobotRadius(double const robotRadius) {
+		this->robotRadius = robotRadius;
+	}
 	/**
 	 * @brief get the safety distance at the given speed
 	 * @param speed given speed, in m/s
@@ -158,12 +219,12 @@ protected:
 	bool calculateCellsMagnitude(
 		std::array<double, 361> const& laserRanges, double const speed);
 	/**
-	 * @brief get the current low binary histogram threshold
+	 * @brief get the current low binary histogram threshold, obs, free
 	 * @param speed given speed, m/s
 	 * @return the threshold
 	 */
-	double getBinaryHistogramLow(double const speed) const;
-	double getBinaryHistogramHigh(double const speed) const;
+	double getFreeBinaryHistogram(double const speed) const;
+	double getObsBinaryHistogram(double const speed) const;
 	/**
 	 * @brief select the candidate angle to decide the direction using the
 	 * given weights
@@ -175,18 +236,27 @@ protected:
 	double const maxSpeed;/* m/s */
 	double const maxSpeedNarrowOpening;/* m/s */
 	double const maxSpeedWideOpening;/* m/s */
-	double const safetyDistance0ms;/* in meters */
-	double const safetyDistance1ms;/* in meters */
-	/* scale turnrate linearly between these two */
-	double const maxTurnrate0ms;/* radians/s */
-	double const maxTurnrate1ms;/* radians/s */
-	double const binaryHistogramLow0ms;
-	double const binaryHistogramHigh0ms;
-	double const binaryHistogramLow1ms;
-	double const binaryHistogramHigh1ms;
+	/** @note maxSafetyDistance should >= zeroSafetyDistance */
+	double const zeroSafetyDistance;/* in meters */
+	double const maxSafetyDistance;/* in meters */
+	/**
+	 * @brief scale turnrate linearly between these two
+	 * @note "zero" should >= "max"
+	 */
+	double const zeroMaxTurnrate;/* radians/s */
+	double const maxMaxTurnrate;/* radians/s */
+	/**
+	 * @note
+	 * - free should >= obs
+	 * - "zero" should >= "max"
+	 */
+	double const zeroFreeBinaryHistogram;
+	double const maxFreeBinaryHistogram;
+	double const zeroObsBinaryHistogram;
+	double const maxObsBinaryHistogram;
 	double const maxAcceleration;/* m/s^2 */
-	double const u1;
-	double const u2;
+	double const desiredDirectionWeight;
+	double const currentDirectionWeight;
 	double const minTurnRadiusSafetyFactor;/* default 1.0 */
 	double robotRadius;/* in meters */
 	/*
