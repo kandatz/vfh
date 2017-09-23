@@ -15,7 +15,6 @@
 #include "yuiwong/vfh.hpp"
 #include <cmath>
 #include <limits>
-#include <iostream>
 #include "yuiwong/double.hpp"
 #include "yuiwong/math.hpp"
 #include "yuiwong/angle.hpp"
@@ -47,7 +46,7 @@ std::array<double, 361>& ConvertScan(
 		resultOffset = 0;
 	}
 	int const n = ranges.size();
-	YUIWONGLOGNFATA(
+	YUIWONGLOGNDEBU(
 		"ConvertScan",
 		"resultOffset %d laserOffset %d n %d raysPerDegree %lf",
 		resultOffset, laserOffset, n, raysPerDegree);
