@@ -13,49 +13,60 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ======================================================================== */
 #include "yuiwong/vfh.hpp"
+#include <cmath>
+#include <limits>
+#include <iostream>
 #include "yuiwong/double.hpp"
+#include "yuiwong/math.hpp"
+#include "yuiwong/angle.hpp"
 namespace yuiwong
 {
+/**
+ * @return
+ * - full result laser [-HPi, HPi] to idx[0, 361]
+ * - result in meters
+ */
 std::array<double, 361>& ConvertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
-	double const angleMax,
 	double const angleIncrement,
-	double const rangeMax,
 	std::array<double, 361>& result)
 {
-	std::fill(result.begin(), result.end(), -1.0);
-	size_t const n = ranges.size();
-	double const laserSpan = angleMax - angleMin;
-	if ((DoubleCompare(laserSpan, M_PI) > 0) || (n > 180)) {
-		/* in case we are using hokuyo */
-		int const startIndex = (-M_PI / 2 - angleMin) / angleIncrement;
-		double const raysPerDegree = (M_PI / 180.0) / angleIncrement;
-		int step;
-		double r;
-		for (unsigned i = 0; i < 180; ++i) {
-			step = static_cast<int>(raysPerDegree * i);
-			/* calculate position in laser frame */
-			if ((startIndex + step) > (static_cast<int>(n) - 1)) {
-				/* probably this is not necessary */
-				step = step - 1;
-			}
-			r = ranges[startIndex + step] * 1e3;
-			if (DoubleCompare(r, 10.0) < 0) {
-				r = rangeMax * 1e3;
-			}
-			result[i * 2] = r;
-			result[i * 2 + 1] = r;
-		}
+	double const raysPerDegree = DegreeToRadian(1) / angleIncrement;
+	int laserOffset;
+	int resultOffset;
+	if (DoubleCompare(::fabs(angleMin), HPi) > 0) {
+		laserOffset = (::fabs(angleMin) - HPi) / angleIncrement;
+		resultOffset = 0;
+	} else if (DoubleCompare(::fabs(angleMin), HPi) < 0) {
+		laserOffset = 0;
+		resultOffset = ((HPi - ::fabs(angleMin)) / angleIncrement)
+			/ raysPerDegree;
 	} else {
-		for (unsigned i = 0; i < 180; ++i) {
-			/* in case we are using sick
-			 * calculate position in laser frame */
-			double const r = ranges[i] * 1e3;
-			result[i * 2] = r;
-			result[i * 2 + 1] = r;
-		}
+		laserOffset = 0;
+		resultOffset = 0;
 	}
+	int const n = ranges.size();
+	YUIWONGLOGNFATA(
+		"ConvertScan",
+		"resultOffset %d laserOffset %d n %d raysPerDegree %lf",
+		resultOffset, laserOffset, n, raysPerDegree);
+	std::fill(
+		result.begin(), result.end(), std::numeric_limits<double>::max());
+	int step;
+	for (int i = resultOffset; i < 180; ++i) {
+		step = static_cast<int>(raysPerDegree * i);
+		/* calculate position in laser frame */
+		if ((laserOffset + step) >= n) {
+			continue;
+		}
+		double const r = ranges[laserOffset + step];
+		if (std::isnan(r)) {
+			continue;
+		}
+		result[i * 2] = result[(i * 2) + 1] = r;
+	}
+	result[360] = result[359];
 	return result;
 }
 }

@@ -17,12 +17,11 @@
 #include <vector>
 #include <array>
 namespace yuiwong {
+/** @return result in meters */
 extern std::array<double, 361>& ConvertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
-	double const angleMax,
 	double const angleIncrement,
-	double const rangeMax,
 	std::array<double, 361>& result);
 }
 #endif
