@@ -23,5 +23,6 @@
     clear_params="true"
     output="screen"
     required="true">
+    <param name="goal_topic" type="string" value="/goal" />
   </node>
 </launch>
