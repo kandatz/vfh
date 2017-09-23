@@ -11,11 +11,18 @@ add_definitions(-Werror)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp)
+  roscpp
+  yuiwonggeometrymsg)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(Eigen3 REQUIRED)
+if(NOT EIGEN3_INCLUDE_DIRS)
+  find_package(PkgConfig REQUIRED)
+  pkg_search_module(EIGEN3 REQUIRED eigen3)
+endif()
 find_package(yuiwongvfhimpl REQUIRED)
 find_package(yuiwongcppbase REQUIRED)
+find_package(yuiwonggeometry REQUIRED)
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -104,6 +111,9 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  ${EIGEN3_INCLUDE_DIRS}
+  ${yuiwongcppbase_INCLUDE_DIRS}
+  ${yuiwonggeometry_INCLUDE_DIRS}
   ${yuiwongvfhimpl_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS})
 ## Declare a C++ library
@@ -133,8 +143,11 @@ include_directories(
 add_executable(${PROJECT_NAME} vfhplus.cpp)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME vfhplus
   PREFIX "")
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}
   ${yuiwongvfhimpl_LIBRARIES}
+  ${yuiwonggeometry_LIBRARIES}
   ${yuiwongcppbase_LIBRARIES}
   ${catkin_LIBRARIES})
 #############

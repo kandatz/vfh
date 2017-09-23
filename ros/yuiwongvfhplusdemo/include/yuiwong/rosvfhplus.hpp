@@ -12,8 +12,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ======================================================================== */
-#ifndef YUIWONGVFHPLUSDEMO_VFPPLUS_HPP
-#define YUIWONGVFHPLUSDEMO_VFPPLUS_HPP
+#ifndef YUIWONGVFHPLUSDEMO_ROSVFPPLUS_HPP
+#define YUIWONGVFHPLUSDEMO_ROSVFPPLUS_HPP
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Pose2D.h>
@@ -23,26 +23,31 @@
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
 #include "yuiwong/vfhplus.hpp"
+#include "yuiwonggeometrymsg/AngleDistance.h"
 namespace yuiwong {
 struct VfhPlusNode {
 	VfhPlusNode(ros::NodeHandle nh, ros::NodeHandle pnh);
 	~VfhPlusNode();
-	void update(double const desiredAngle);
+	void update(double const v, double const a, double const d);
 private:
 	boost::shared_ptr<VfhPlus> vfh;
-	double robotLinearX;/* meter/s */
-	std::array<double, 361> laserRanges;
+	Eigen::Matrix<double, 361, 1> laserRanges;
 	ros::NodeHandle nh;
 	ros::NodeHandle pnh;
 	ros::Subscriber scanSubscriber;
 	ros::Subscriber odomSubscriber;
+	ros::Subscriber goalSubscriber;
 	ros::Publisher velPublisher;
 	void scanCallback(sensor_msgs::LaserScanConstPtr const& scan);
 	void odomCallback(nav_msgs::OdometryConstPtr const& odom);
+	void goalCallback(yuiwonggeometrymsg::AngleDistanceConstPtr const& goal);
 	struct {
-		double angle;/* ::atan2(angularzVelocity, linearxVelocity) */
+		yuiwonggeometrymsg::AngleDistanceConstPtr goal;
 		double stamp;
-	} desiredVelocity;
+		double currentLinearX;
+		double currentLinearXStamp;
+		boost::mutex mutex;
+	} goal;
 };
 }
-#endif /* YUIWONGVFHPLUSDEMO_VFPPLUS_HPP */
+#endif
