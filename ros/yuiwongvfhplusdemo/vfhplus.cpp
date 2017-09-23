@@ -200,7 +200,7 @@ void VfhPlusNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 		scan->angle_increment,
 		this->laserRanges);
 	this->laserRanges *= 1e3;
-	if (debug) {
+	if (false && debug) {
 		auto const& l = this->laserRanges.transpose();
 		for (int i = 0; i < 361; ++i) {
 			std::cout << ToString(l[i]) << "\t";

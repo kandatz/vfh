@@ -173,13 +173,6 @@ struct VfhPlus {
 		double const angleIncrement,
 		double const rangeMax,
 		Eigen::Matrix<double, 361, 1>& result);
-	static void convertScan(
-		std::vector<float> const ranges,
-		double const angleMin,
-		double const angleMax,
-		double const angleIncrement,
-		double const rangeMax,
-		double result[361][2]);
 	/** @brief start up the vfh+ algorithm */
 	void init();
 	/**
