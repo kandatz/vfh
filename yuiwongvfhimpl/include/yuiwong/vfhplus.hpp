@@ -17,7 +17,7 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <vector>
-#include <array>
+#include "Eigen/Eigen"
 namespace yuiwong {
 /** @brief Vector Field Histogram local navigation algorithm
 The vfh class implements the Vector Field Histogram Plus local
@@ -199,7 +199,7 @@ struct VfhPlus {
 	 * radian/s
 	 */
 	void update(
-		std::array<double, 361> const& laserRanges,
+		Eigen::Matrix<double, 361, 1> const& laserRanges,
 		double const currentLinearX,
 		double const goalDirection,
 		double const goalDistance,
@@ -249,10 +249,10 @@ double deltaAngle(int a1, int a2);
 	bool cantTurnToGoal();
 // Returns 0 if something got inside the safety distance, else 1.
 int Calculate_Cells_Mag(
-	std::array<double, 361> const& laserRanges, int speed);
+	Eigen::Matrix<double, 361, 1> const& laserRanges, int speed);
 // Returns 0 if something got inside the safety distance, else 1.
 int buildPrimaryPolarHistogram(
-	std::array<double, 361> const& laserRanges, int speed);
+	Eigen::Matrix<double, 361, 1> const& laserRanges, int speed);
 int buildBinaryPolarHistogram(int speed);
 int buildMaskedPolarHistogram(int speed);
 int Select_Candidate_Angle();

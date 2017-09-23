@@ -394,7 +394,7 @@ return(1);
  * radian/s
  */
 void VfhPlus::update(
-	std::array<double, 361> const& laserRanges,
+	Eigen::Matrix<double, 361, 1> const& laserRanges,
 	double const currentLinearX,
 	double const goalDirection,
 	double const goalDistance,
@@ -784,7 +784,7 @@ printf("\n\n");
 * @return 1
 */
 int VfhPlus::Calculate_Cells_Mag(
-	std::array<double, 361> const& laserRanges, int speed)
+	Eigen::Matrix<double, 361, 1> const& laserRanges, int speed)
 {
 int x, y;
 double safeSpeed = (double) Get_Safety_Dist(speed);
@@ -847,7 +847,7 @@ return(1);
 * @return 1
 */
 int VfhPlus::buildPrimaryPolarHistogram(
-	std::array<double, 361> const& laserRanges, int speed)
+	Eigen::Matrix<double, 361, 1> const& laserRanges, int speed)
 {
 int x, y;
 unsigned int i;
