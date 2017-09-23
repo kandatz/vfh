@@ -28,7 +28,7 @@ nh(nh), pnh(pnh)
 		yuiwong::kDebugLevel = yuiwong::LogLevel::Deta;
 	}
 	VfhPlus::Param p;
-#	if 0
+#	if YUIWONGVFHIMPL_NOOLDVFPPLUSIMPL
 	p.cellWidth = 0.1;/* cell dimension */
 	p.windowDiameter = 60;/* cells count */
 	p.sectorAngle = DegreeToRadian(5);/* sector angle */
@@ -51,7 +51,7 @@ nh(nh), pnh(pnh)
 	this->pnh.getParam("max_obs_cutoff", p.maxObsCutoff);
 	this->pnh.getParam("desired_direction_weight", p.desiredDirectionWeight);
 	this->pnh.getParam("current_direction_weight", p.currentDirectionWeight);
-#	endif
+#	else
 	p.cell_size = 100;// mm, cell dimension
 	p.window_diameter = 60;// number of cells
 	p.sector_angle = 5;// deg, sector angle
@@ -86,12 +86,17 @@ nh(nh), pnh(pnh)
 		p.weight_desired_dir = 5.0;//double, weight desired direction
 	if(!this->pnh.getParam("weight_current_dir", p.weight_current_dir))
 		p.weight_current_dir = 1.0;//double, weight current direction
+#	endif
 	double robotRadius;
 	if (!this->pnh.getParam("robot_radius", robotRadius)) {
 		robotRadius = 0.3;
 	}
 	this->vfh = boost::make_shared<VfhPlus>(p);
+#	if YUIWONGVFHIMPL_NOOLDVFPPLUSIMPL
 	this->vfh->setRobotRadius(robotRadius);
+#	else
+	this->vfh->setRobotRadius(robotRadius * 1e3);
+#	endif
 	this->vfh->init();
 	this->goal.goal = nullptr;
 	this->goal.stamp = 0;
@@ -200,6 +205,7 @@ void VfhPlusNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 		scan->angle_increment,
 		this->laserRanges);
 	this->laserRanges *= 1e3;
+#	if 0
 	if (false && debug) {
 		auto const& l = this->laserRanges.transpose();
 		for (int i = 0; i < 361; ++i) {
@@ -229,6 +235,7 @@ void VfhPlusNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 			exit(1);
 		}
 	}
+#	endif /* if 0 */
 	this->update(cv, goal->angle, goal->distance);/* perform vfh+ */
 }
 void VfhPlusNode::update(double const v, double const a, double const d)

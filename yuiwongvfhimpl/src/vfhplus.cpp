@@ -13,6 +13,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ======================================================================== */
 #include "yuiwong/vfhplus.hpp"
+#if !YUIWONGVFHIMPL_NOOLDVFPPLUSIMPL
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
@@ -1058,3 +1059,4 @@ Eigen::Matrix<double, 361, 1>& VfhPlus::convertScanMM(
 	return result;
 }
 }
+#endif /* if !YUIWONGVFHIMPL_NOOLDVFPPLUSIMPL */

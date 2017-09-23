@@ -18,11 +18,13 @@
 #include "Eigen/Eigen"
 namespace yuiwong {
 /**
- * @implements vfh*
+ * @implements vfh* BaseVfhStar, i.e. vfh+
  * @see
- * - vfh http://www-personal.umich.edu/~johannb/Papers/paper16.pdf
+ * - vfh http://www-personal.umich.edu/~johannb/Papers/paper17.pdf
+ * - vfh+ http://www-personal.umich.edu/~johannb/Papers/paper16.pdf
+ * - vfh* http://www.cs.cmu.edu/~iwan/papers/vfhstar.pdf
  */
-struct VfhStar {
+struct BaseVfhStar {
 	constexpr static double defaultTolerance = 0.2;
 	constexpr static double defaultStampTolerance = 0.2;
 	struct Param {
@@ -118,8 +120,8 @@ struct VfhStar {
 		double robotRadius;
 		Param();
 	};
-	VfhStar(Param const& param);
-	virtual ~VfhStar() = default;
+	BaseVfhStar(Param const& param);
+	virtual ~BaseVfhStar() = default;
 	/* total projected distance dt = ng * ds */
 	/** @brief start up the vfh* algorithm */
 	void init();
@@ -139,7 +141,7 @@ struct VfhStar {
 	 * @param[out] chosenAngularZ the chosen turn rathe to drive the robot, in
 	 * radian/s
 	 */
-	void update(
+	virtual void update(
 		Eigen::Matrix<double, 361, 1> const& laserRanges,
 		double const currentLinearX,
 		double const goalDirection,
@@ -167,6 +169,9 @@ struct VfhStar {
 	 * @return max turn rate in radians
 	 */
 	double getMaxTurnrate(double const speed) const;
+	/** @brief angle to goal, in radians. 0 is to our right */
+	inline double getDesiredAngle() const { return this->desiredDirection; }
+	inline double getPickedAngle() const { return this->pickedDirection; }
 protected:
 	void allocate();
 	/**
@@ -304,6 +309,10 @@ protected:
 	double lastPickedDirection;
 	//double stepDistance;/* ds */
 	//int processTimes;/* ng */
+};
+struct VfhStar: public BaseVfhStar {
+	VfhStar(Param const& param): BaseVfhStar(param) {}
+	virtual ~VfhStar() = default;
 };
 }
 #endif

@@ -29,7 +29,7 @@ static std::ostream& operator<<(
 	}
 	return os;
 }
-VfhStar::Param::Param():
+BaseVfhStar::Param::Param():
 	cellWidth(0.1),
 	windowDiameter(60),
 	sectorAngle(DegreeToRadian(5)),
@@ -49,7 +49,7 @@ VfhStar::Param::Param():
 	currentDirectionWeight(1.0),
 	minTurnRadiusSafetyFactor(1.0),
 	robotRadius(0.2) {}
-VfhStar::VfhStar(Param const& param):
+BaseVfhStar::BaseVfhStar(Param const& param):
 	cellWidth(param.cellWidth),
 	windowDiameter(param.windowDiameter),
 	sectorAngle(param.sectorAngle),
@@ -84,7 +84,7 @@ VfhStar::VfhStar(Param const& param):
 	}
 }
 /** @brief start up the vfh* algorithm */
-void VfhStar::init()
+void BaseVfhStar::init()
 {
 	this->centerX = static_cast<int>(::floor(this->windowDiameter / 2.0));
 	this->centerY = this->centerX;
@@ -94,7 +94,7 @@ void VfhStar::init()
 	 * let's leave the verbose debug statement out
 	 */
 	YUIWONGLOGNDEBU(
-		"VfhStar",
+		"BaseVfhStar",
 		"cellWidth %1.1lf windowDiameter %d sectorAngle %lf histogramSize %d "
 		"robotRadius %1.1lf safetyDistance %lf %lf maxSpeed %lf "
 		"maxTurnrate %lf %lf freespace cutoff %lf %lf obstacle cutoff %lf %lf"
@@ -315,7 +315,7 @@ void VfhStar::init()
  * @param[out] chosenAngularZ the chosen turn rathe to drive the robot, in
  * radian/s
  */
-void VfhStar::update(
+void BaseVfhStar::update(
 	Eigen::Matrix<double, 361, 1> const& laserRanges,
 	double const currentLinearX,
 	double const goalDirection,
@@ -346,7 +346,7 @@ void VfhStar::update(
 	if (DoubleCompare(currentPoseSpeed, this->lastChosenLinearX) < 0) {
 		currentPoseSpeed = this->lastChosenLinearX;
 	}
-	YUIWONGLOGNDEBU("VfhStar", "currentPoseSpeed %lf", currentPoseSpeed);
+	YUIWONGLOGNDEBU("BaseVfhStar", "currentPoseSpeed %lf", currentPoseSpeed);
 	/*
 	 * work out how much time has elapsed since the last update,
 	 * so we know how much to increase speed by, given MAX_ACCELERATION.
@@ -394,7 +394,7 @@ void VfhStar::update(
 		 * the goal too close -- we can't turn tightly enough to
 		 * get to it, so slow down
 		 */
-		YUIWONGLOGNDEBU("VfhStar", "too close: cannotTurnToGoal");
+		YUIWONGLOGNDEBU("BaseVfhStar", "too close: cannotTurnToGoal");
 		speedIncr = -speedIncr;
 	}
 	double const maxvForDistance = std::min(
@@ -411,7 +411,7 @@ void VfhStar::update(
 	chosenAngularZ = NormalizeAngle(chosenTurnrate);
 	this->lastChosenLinearX = chosenLinearX0;
 	YUIWONGLOGNDEBU(
-		"VfhStar",
+		"BaseVfhStar",
 		"goal %lf %lf -> picked direction %lf -> max lx %lf -> final %lf %lf",
 		goalDirection,
 		goalDistance,
@@ -425,7 +425,7 @@ void VfhStar::update(
  * @param speed given speed, in m/s
  * @return the safety distance, in meters
  */
-double VfhStar::getSafetyDistance(double const speed) const
+double BaseVfhStar::getSafetyDistance(double const speed) const
 {
 	double d = this->zeroSafetyDistance + (speed
 		* (this->maxSafetyDistance - this->zeroSafetyDistance));
@@ -438,7 +438,7 @@ double VfhStar::getSafetyDistance(double const speed) const
  * @brief set the current max speed
  * @param maxSpeed current max speed, in m/s
  */
-void VfhStar::setCurrentMaxSpeed(double const maxSpeed)
+void BaseVfhStar::setCurrentMaxSpeed(double const maxSpeed)
 {
 	this->currentMaxSpeed = std::min(maxSpeed, this->maxSpeed);
 	int const n = static_cast<int>(this->currentMaxSpeed * 1e3) + 1;
@@ -464,7 +464,7 @@ void VfhStar::setCurrentMaxSpeed(double const maxSpeed)
  * @param speed current speed, m/s
  * @return max turn rate in radians
  */
-double VfhStar::getMaxTurnrate(double const speed) const
+double BaseVfhStar::getMaxTurnrate(double const speed) const
 {
 	double val = this->zeroMaxTurnrate - (speed
 		* (this->zeroMaxTurnrate - this->maxMaxTurnrate));
@@ -473,9 +473,9 @@ double VfhStar::getMaxTurnrate(double const speed) const
 	}
 	return val;
 }
-void VfhStar::allocate()
+void BaseVfhStar::allocate()
 {
-	YUIWONGLOGNDEBU("VfhStar", "allocate ..");
+	YUIWONGLOGNDEBU("BaseVfhStar", "allocate ..");
 	this->cellDirection.clear();
 	this->cellBaseMagnitude.clear();
 	this->cellMagnitude.clear();
@@ -502,7 +502,7 @@ void VfhStar::allocate()
 	this->histogram.resize(this->histogramSize, 0);
 	this->lastBinaryHistogram.resize(this->histogramSize, 0);
 	this->setCurrentMaxSpeed(this->maxSpeed);
-	YUIWONGLOGNDEBU("VfhStar", "allocate done");
+	YUIWONGLOGNDEBU("BaseVfhStar", "allocate done");
 }
 /**
  * @brief build the primary polar histogram
@@ -511,15 +511,15 @@ void VfhStar::allocate()
  * @return false when something inside our safety distance,
  * should brake hard and turn on the spot, else return true
  */
-bool VfhStar::buildPrimaryPolarHistogram(
+bool BaseVfhStar::buildPrimaryPolarHistogram(
 	Eigen::Matrix<double, 361, 1> const& laserRanges, double const speed)
 {
-	YUIWONGLOGNDEBU("VfhStar", "buildPrimaryPolarHistogram");
+	YUIWONGLOGNDEBU("BaseVfhStar", "buildPrimaryPolarHistogram");
 	/* index into the vector of cell sector tables */
 	std::fill(this->histogram.begin(), this->histogram.end(), 0);
 	if (!this->calculateCellsMagnitude(laserRanges, speed)) {
 		/* set hist to all blocked */
-		YUIWONGLOGNDEBU("VfhStar", "histogram all blocked: 1");
+		YUIWONGLOGNDEBU("BaseVfhStar", "histogram all blocked: 1");
 		std::fill(this->histogram.begin(), this->histogram.end(), 1);
 		return false;
 	}
@@ -538,9 +538,9 @@ bool VfhStar::buildPrimaryPolarHistogram(
  * @brief build the binary polar histogram
  * @param speed robot speed, m/s
  */
-void VfhStar::buildBinaryPolarHistogram(double const speed)
+void BaseVfhStar::buildBinaryPolarHistogram(double const speed)
 {
-	YUIWONGLOGNDEBU("VfhStar", "buildBinaryPolarHistogram");
+	YUIWONGLOGNDEBU("BaseVfhStar", "buildBinaryPolarHistogram");
 	for (int x = 0; x < this->histogramSize; ++x) {
 		if (DoubleCompare(
 			this->histogram[x], this->getObsBinaryHistogram(speed)) > 0) {
@@ -561,9 +561,9 @@ void VfhStar::buildBinaryPolarHistogram(double const speed)
  * @param speed robot speed, m/s
  * @note this function also sets blocked circle radius
  */
-void VfhStar::buildMaskedPolarHistogram(double const speed)
+void BaseVfhStar::buildMaskedPolarHistogram(double const speed)
 {
-	YUIWONGLOGNDEBU("VfhStar", "buildMaskedPolarHistogram");
+	YUIWONGLOGNDEBU("BaseVfhStar", "buildMaskedPolarHistogram");
 	/*
 	 * centerX[left|right] is the centre of the circles on either side that
 	 * are blocked due to the robot's dynamics.
@@ -632,7 +632,7 @@ void VfhStar::buildMaskedPolarHistogram(double const speed)
 	}
 }
 /** @brief select the used direction */
-void VfhStar::selectDirection()
+void BaseVfhStar::selectDirection()
 {
 	this->candidateAngle.clear();
 	this->candidateSpeed.clear();
@@ -654,7 +654,7 @@ void VfhStar::selectDirection()
 		this->lastPickedDirection = this->pickedDirection;
 		this->maxSpeedForPickedDirection = this->currentMaxSpeed;
 		YUIWONGLOGNDEBU(
-			"VfhStar",
+			"BaseVfhStar",
 			"front no obstacle detected: "
 			"full speed towards goal: %lf, %lf, %lf",
 			 this->pickedDirection,
@@ -732,7 +732,7 @@ void VfhStar::selectDirection()
  * turn to the goal?
  * @return true if the robot cannot turn to the goal
  */
-bool VfhStar::cannotTurnToGoal() const
+bool BaseVfhStar::cannotTurnToGoal() const
 {
 	/*
 	 * calculate this by seeing if the goal is inside the blocked circles
@@ -770,7 +770,7 @@ bool VfhStar::cannotTurnToGoal() const
  * @param linearX the desire linear x speed, m/s
  * @param turnrate the desire turn rate, radians/s
  */
-void VfhStar::setMotion(
+void BaseVfhStar::setMotion(
 	double const actualSpeed, double& linearX, double& turnrate)
 {
 	double const mx = this->getMaxTurnrate(actualSpeed);
@@ -797,18 +797,18 @@ void VfhStar::setMotion(
  * @param speed given speed, m/s
  * @return the index speed
  */
-int VfhStar::getSpeedIndex(double const speed) const
+int BaseVfhStar::getSpeedIndex(double const speed) const
 {
 	int idx = ::floor(((speed * 1e3) / this->currentMaxSpeed)
 		* this->cellSectorTablesCount);
 	if (idx >= this->cellSectorTablesCount) {
 		idx = this->cellSectorTablesCount - 1;
 	}
-	YUIWONGLOGNDEBU("VfhStar", "speed index at %lf m/s: %d", speed, idx);
+	YUIWONGLOGNDEBU("BaseVfhStar", "speed index at %lf m/s: %d", speed, idx);
 	return idx;
 }
 /** @param speed linear x velocity, m/s, >=0 */
-int VfhStar::getMinTurningRadiusIndex(double const speed) const
+int BaseVfhStar::getMinTurningRadiusIndex(double const speed) const
 {
 	int idx = speed * 1e3;
 	ssize_t const sz = this->minTurningRadius.size();
@@ -823,7 +823,7 @@ int VfhStar::getMinTurningRadiusIndex(double const speed) const
  * @param speed robot speed, m/s
  * @return true
  */
-bool VfhStar::calculateCellsMagnitude(
+bool BaseVfhStar::calculateCellsMagnitude(
 	Eigen::Matrix<double, 361, 1> const& laserRanges, double const speed)
 {
 	double const safeD = this->getSafetyDistance(speed);
@@ -856,7 +856,7 @@ bool VfhStar::calculateCellsMagnitude(
 					 * short-circuit this process.
 					 */
 					YUIWONGLOGNDEBU(
-						"VfhStar",
+						"BaseVfhStar",
 						"%d %d %d %d: %lf %lf lr %lf inside safety %lf",
 						this->centerX,
 						this->centerY,
@@ -885,7 +885,7 @@ bool VfhStar::calculateCellsMagnitude(
  * @param speed given speed, m/s
  * @return the threshold
  */
-double VfhStar::getFreeBinaryHistogram(double const speed) const
+double BaseVfhStar::getFreeBinaryHistogram(double const speed) const
 {
 	return this->zeroFreeBinaryHistogram - (speed
 		* (this->zeroFreeBinaryHistogram - this->maxFreeBinaryHistogram));
@@ -895,7 +895,7 @@ double VfhStar::getFreeBinaryHistogram(double const speed) const
  * @param speed given speed, m/s
  * @return the threshold
  */
-double VfhStar::getObsBinaryHistogram(double const speed) const
+double BaseVfhStar::getObsBinaryHistogram(double const speed) const
 {
 	return this->zeroObsBinaryHistogram - (speed *
 		(this->zeroObsBinaryHistogram - this->maxObsBinaryHistogram));
@@ -904,7 +904,7 @@ double VfhStar::getObsBinaryHistogram(double const speed) const
  * @brief select the candidate angle to decide the direction using the
  * given weights
  */
-void VfhStar::selectCandidateAngle()
+void BaseVfhStar::selectCandidateAngle()
 {
 	if (this->candidateAngle.size() <= 0) {
 		/*

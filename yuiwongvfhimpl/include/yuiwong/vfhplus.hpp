@@ -14,11 +14,20 @@
  * ======================================================================== */
 #ifndef YUIWONGVFHIMPL_VFPPLUS_HPP
 #define YUIWONGVFHIMPL_VFPPLUS_HPP 1
-#include <sys/time.h>
-#include <stdio.h>
-#include <vector>
-#include "Eigen/Eigen"
+#ifndef YUIWONGVFHIMPL_NOOLDVFPPLUSIMPL
+#	define YUIWONGVFHIMPL_NOOLDVFPPLUSIMPL 1
+#endif
+#if YUIWONGVFHIMPL_NOOLDVFPPLUSIMPL
+#	include "yuiwong/vfhstar.hpp"
+#else
+#	include <stdio.h>
+#	include <vector>
+#	include "Eigen/Eigen"
+#endif
 namespace yuiwong {
+#if YUIWONGVFHIMPL_NOOLDVFPPLUSIMPL
+typedef ::yuiwong::BaseVfhStar VfhPlus;
+#else
 /** @brief Vector Field Histogram local navigation algorithm
 The vfh class implements the Vector Field Histogram Plus local
 navigation method by Ulrich and Borenstein. VFH+ provides real-time
@@ -323,5 +332,6 @@ std::vector<int> Min_Turning_Radius;
 	double lastUpdateTime;
 	double lastChosenLinearX;/* meter/s */
 };
+#endif
 }
 #endif
