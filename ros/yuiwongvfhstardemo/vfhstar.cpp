@@ -22,6 +22,11 @@ VfhStarNode::VfhStarNode(ros::NodeHandle nh, ros::NodeHandle pnh):
 nh(nh), pnh(pnh)
 {
 	ROS_INFO("starting vfh");
+	bool debug;
+	this->pnh.param("debug", debug, false);
+	if (debug) {
+		yuiwong::kDebugLevel = yuiwong::LogLevel::Deta;
+	}
 	VfhStar::Param p;
 	p.cellWidth = 0.1;/* cell dimension */
 	p.windowDiameter = 60;/* cells count */
@@ -184,7 +189,6 @@ void VfhStarNode::update(double const v, double const a, double const d)
 }
 int main(int argc, char** argv)
 {
-	//yuiwong::kDebugLevel = yuiwong::LogLevel::Deta;
 	ros::init(argc, argv, "vfhstar");
 	ros::NodeHandle nh;
 	ros::NodeHandle pnh("~");

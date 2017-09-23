@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 <launch>
+  <arg name="debug" default="false" />
   <arg name="use_sim_time" default="false" />
   <param name="/use_sim_time" value="$(arg use_sim_time)" />
   <node
@@ -23,6 +24,7 @@
     clear_params="true"
     output="screen"
     required="true">
+    <param name="debug" type="bool" value="$(arg debug)" />
     <param name="goal_topic" type="string" value="/goal" />
   </node>
 </launch>
