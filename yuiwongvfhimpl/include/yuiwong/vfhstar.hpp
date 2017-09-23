@@ -15,7 +15,7 @@
 #ifndef YUIWONGVFHIMPL_VFPSTAR_HPP
 #define YUIWONGVFHIMPL_VFPSTAR_HPP 1
 #include <vector>
-#include <array>
+#include "Eigen/Eigen"
 namespace yuiwong {
 /**
  * @implements vfh*
@@ -140,7 +140,7 @@ struct VfhStar {
 	 * radian/s
 	 */
 	void update(
-		std::array<double, 361> const& laserRanges,
+		Eigen::Matrix<double, 361, 1> const& laserRanges,
 		double const currentLinearX,
 		double const goalDirection,
 		double const goalDistance,
@@ -177,7 +177,7 @@ protected:
 	 * should brake hard and turn on the spot, else return true
 	 */
 	bool buildPrimaryPolarHistogram(
-		std::array<double, 361> const& laserRanges, double const speed);
+		Eigen::Matrix<double, 361, 1> const& laserRanges, double const speed);
 	/**
 	 * @brief build the binary polar histogram
 	 * @param speed robot speed, m/s
@@ -219,7 +219,7 @@ protected:
 	 * @return true
 	 */
 	bool calculateCellsMagnitude(
-		std::array<double, 361> const& laserRanges, double const speed);
+		Eigen::Matrix<double, 361, 1> const& laserRanges, double const speed);
 	/**
 	 * @brief get the current low binary histogram threshold, obs, free
 	 * @param speed given speed, m/s

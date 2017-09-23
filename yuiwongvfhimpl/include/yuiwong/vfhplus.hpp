@@ -141,6 +141,8 @@ weight_current_dir = 1.0
 @endverbatim
 */
 struct VfhPlus {
+	constexpr static double defaultTolerance = 0.2;
+	constexpr static double defaultStampTolerance = 0.2;
 	struct Param {
 		double cell_size;
 		int window_diameter;

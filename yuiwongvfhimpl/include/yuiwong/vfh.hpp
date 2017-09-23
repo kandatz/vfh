@@ -16,8 +16,23 @@
 #define YUIWONGVFHIMPL_VFP_HPP 1
 #include <vector>
 #include <array>
+#include "Eigen/Eigen"
 namespace yuiwong {
-/** @return result in meters */
+/**
+ * @return
+ * - full result laser [-HPi, HPi] to idx[0, 361]
+ * - result in meters
+ */
+extern Eigen::Matrix<double, 361, 1>& ConvertScan(
+	std::vector<float> const ranges,
+	double const angleMin,
+	double const angleIncrement,
+	Eigen::Matrix<double, 361, 1>& result);
+/**
+ * @return
+ * - full result laser [-HPi, HPi] to idx[0, 361]
+ * - result in meters
+ */
 extern std::array<double, 361>& ConvertScan(
 	std::vector<float> const ranges,
 	double const angleMin,

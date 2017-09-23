@@ -25,6 +25,55 @@ namespace yuiwong
  * - full result laser [-HPi, HPi] to idx[0, 361]
  * - result in meters
  */
+Eigen::Matrix<double, 361, 1>& ConvertScan(
+	std::vector<float> const ranges,
+	double const angleMin,
+	double const angleIncrement,
+	Eigen::Matrix<double, 361, 1>& result)
+{
+	double const raysPerDegree = DegreeToRadian(1) / angleIncrement;
+	int laserOffset;
+	int resultOffset;
+	if (DoubleCompare(::fabs(angleMin), HPi) > 0) {
+		laserOffset = (::fabs(angleMin) - HPi) / angleIncrement;
+		resultOffset = 0;
+	} else if (DoubleCompare(::fabs(angleMin), HPi) < 0) {
+		laserOffset = 0;
+		resultOffset = ((HPi - ::fabs(angleMin)) / angleIncrement)
+			/ raysPerDegree;
+	} else {
+		laserOffset = 0;
+		resultOffset = 0;
+	}
+	int const n = ranges.size();
+	YUIWONGLOGNDEBU(
+		"ConvertScan",
+		"resultOffset %d laserOffset %d n %d raysPerDegree %lf",
+		resultOffset, laserOffset, n, raysPerDegree);
+	for (int i = 0; i < 361; ++i) {
+		result[i] = std::numeric_limits<double>::max();
+	}
+	int step;
+	for (int i = resultOffset; i < 180; ++i) {
+		step = static_cast<int>(raysPerDegree * i);
+		/* calculate position in laser frame */
+		if ((laserOffset + step) >= n) {
+			continue;
+		}
+		double const r = ranges[laserOffset + step];
+		if (std::isnan(r)) {
+			continue;
+		}
+		result[i * 2] = result[(i * 2) + 1] = r;
+	}
+	result[360] = result[359];
+	return result;
+}
+/**
+ * @return
+ * - full result laser [-HPi, HPi] to idx[0, 361]
+ * - result in meters
+ */
 std::array<double, 361>& ConvertScan(
 	std::vector<float> const ranges,
 	double const angleMin,

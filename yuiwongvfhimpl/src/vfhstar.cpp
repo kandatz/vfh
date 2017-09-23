@@ -29,14 +29,6 @@ static std::ostream& operator<<(
 	}
 	return os;
 }
-static std::ostream& operator<<(
-	std::ostream& os, std::array<double, 361> const& a)
-{
-	for (auto const& d: a) {
-		os << d << " ";
-	}
-	return os;
-}
 VfhStar::Param::Param():
 	cellWidth(0.1),
 	windowDiameter(60),
@@ -324,7 +316,7 @@ void VfhStar::init()
  * radian/s
  */
 void VfhStar::update(
-	std::array<double, 361> const& laserRanges,
+	Eigen::Matrix<double, 361, 1> const& laserRanges,
 	double const currentLinearX,
 	double const goalDirection,
 	double const goalDistance,
@@ -520,7 +512,7 @@ void VfhStar::allocate()
  * should brake hard and turn on the spot, else return true
  */
 bool VfhStar::buildPrimaryPolarHistogram(
-	std::array<double, 361> const& laserRanges, double const speed)
+	Eigen::Matrix<double, 361, 1> const& laserRanges, double const speed)
 {
 	YUIWONGLOGNDEBU("VfhStar", "buildPrimaryPolarHistogram");
 	/* index into the vector of cell sector tables */
@@ -832,7 +824,7 @@ int VfhStar::getMinTurningRadiusIndex(double const speed) const
  * @return true
  */
 bool VfhStar::calculateCellsMagnitude(
-	std::array<double, 361> const& laserRanges, double const speed)
+	Eigen::Matrix<double, 361, 1> const& laserRanges, double const speed)
 {
 	double const safeD = this->getSafetyDistance(speed);
 	double const r = this->robotRadius + safeD;

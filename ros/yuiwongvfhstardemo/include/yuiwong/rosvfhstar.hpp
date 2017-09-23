@@ -14,6 +14,7 @@
  * ======================================================================== */
 #ifndef YUIWONGVFHPLUSDEMO_ROSVFPSTAR_HPP
 #define YUIWONGVFHPLUSDEMO_ROSVFPSTAR_HPP
+#include "Eigen/Eigen"
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Pose2D.h>
@@ -31,7 +32,7 @@ struct VfhStarNode {
 	void update(double const v, double const a, double const d);
 private:
 	boost::shared_ptr<VfhStar> vfh;
-	std::array<double, 361> laserRanges;
+	Eigen::Matrix<double, 361, 1> laserRanges;
 	ros::NodeHandle nh;
 	ros::NodeHandle pnh;
 	ros::Subscriber scanSubscriber;
