@@ -1009,38 +1009,37 @@ void VfhPlus::setMotion(double& linearX, int& turnrate, int const actualSpeed)
 	/*std::cout << "mx " << mx << " pickedDirection " << pickedDirection
 		<< " tr " << turnrate << "\n";*/
 }
-std::array<double, 361>& VfhPlus::convertScan(
+Eigen::Matrix<double, 361, 1>& VfhPlus::convertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
 	double const angleMax,
 	double const angleIncrement,
-	double const rangeMax,
-	std::array<double, 361>& result)
+	Eigen::Matrix<double, 361, 1>& result)
 {
-	std::fill(result.begin(), result.end(), -1.0);
-	size_t const n = ranges.size();
+	for (int i = 0; i < 361; ++i) {
+		result[i] = std::numeric_limits<double>::max();
+	}
+	ssize_t const n = ranges.size();
 	double const laserSpan = angleMax - angleMin;
 	if ((DoubleCompare(laserSpan, M_PI) > 0) || (n > 180)) {
 		/* in case we are using hokuyo */
 		int const startIndex = (-M_PI / 2 - angleMin) / angleIncrement;
 		double const raysPerDegree = (M_PI / 180.0) / angleIncrement;
-		/*std::cout << __func__ << " startIndex " << startIndex
-			<< " raysxdeg " << raysPerDegree << "\n";*/
 		int step;
 		double r;
 		for (unsigned i = 0; i < 180; ++i) {
 			step = static_cast<int>(raysPerDegree * i);
 			/* calculate position in laser frame */
-			if ((startIndex + step) > (static_cast<int>(n) - 1)) {
-				/* probably this is not necessary */
-				step = step - 1;
+			if ((startIndex + step) >= n) {
+				continue;
 			}
-			/** FIXME not to rangeMax * 1e3!! */
 			r = ranges[startIndex + step] * 1e3;
-			if (DoubleCompare(r, 10.0) < 0) {
-				r = rangeMax * 1e3;
+			if (std::isnan(r)) {
+				continue;
 			}
-			/*std::cout << i << ": " << r << "\n";*/
+			/*if (DoubleCompare(r, 10.0) < 0) {
+				r = rangeMax * 1e3;
+			}*/
 			result[i * 2] = r;
 			result[i * 2 + 1] = r;
 		}

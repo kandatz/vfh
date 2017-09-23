@@ -166,13 +166,12 @@ struct VfhPlus {
 	};
 	VfhPlus(Param const& param);
 	virtual ~VfhPlus();
-	static std::array<double, 361>& convertScan(
+	static Eigen::Matrix<double, 361, 1>& convertScan(
 		std::vector<float> const ranges,
 		double const angleMin,
-		double const angleMax,
 		double const angleIncrement,
 		double const rangeMax,
-		std::array<double, 361>& result);
+		Eigen::Matrix<double, 361, 1>& result);
 	static void convertScan(
 		std::vector<float> const ranges,
 		double const angleMin,
