@@ -50,4 +50,4 @@ private:
 	} goal;
 };
 }
-#endif /* YUIWONGVFHPLUSDEMO_VFPPLUS_HPP */
+#endif
