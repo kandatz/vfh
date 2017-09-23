@@ -18,11 +18,11 @@
 #include "yuiwong/rosvfhplus.hpp"
 namespace yuiwong
 {
+static bool debug = false;
 VfhPlusNode::VfhPlusNode(ros::NodeHandle nh, ros::NodeHandle pnh):
 nh(nh), pnh(pnh)
 {
 	ROS_INFO("starting vfh");
-	bool debug;
 	this->pnh.param("debug", debug, false);
 	if (debug) {
 		yuiwong::kDebugLevel = yuiwong::LogLevel::Deta;
@@ -200,32 +200,34 @@ void VfhPlusNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 		scan->angle_increment,
 		this->laserRanges);
 	this->laserRanges *= 1e3;
-	auto const& l = this->laserRanges.transpose();
-	for (int i = 0; i < 361; ++i) {
-		std::cout << ToString(l[i]) << "\t";
-		if (!((i + 1) % 10)) {
-			std::cout << "\n";
+	if (debug) {
+		auto const& l = this->laserRanges.transpose();
+		for (int i = 0; i < 361; ++i) {
+			std::cout << ToString(l[i]) << "\t";
+			if (!((i + 1) % 10)) {
+				std::cout << "\n";
+			}
 		}
-	}
-	std::cout << "\n\n";
-	Eigen::Matrix<double, 361, 1> laserRanges;
-	VfhPlus::convertScan(
-		scan->ranges,
-		scan->angle_min,
-		scan->angle_max,
-		scan->angle_increment,
-		laserRanges);
-	//std::cout << laserRanges.transpose() << "!!!\n";
-	auto const& l2 = laserRanges.transpose();
-	for (int i = 0; i < 361; ++i) {
-		std::cout << ToString(l2[i]) << "\t";
-		if (!((i + 1) % 10)) {
-			std::cout << "\n";
+		std::cout << "\n\n";
+		Eigen::Matrix<double, 361, 1> laserRanges;
+		VfhPlus::convertScanMM(
+			scan->ranges,
+			scan->angle_min,
+			scan->angle_max,
+			scan->angle_increment,
+			laserRanges);
+		//std::cout << laserRanges.transpose() << "!!!\n";
+		auto const& l2 = laserRanges.transpose();
+		for (int i = 0; i < 361; ++i) {
+			std::cout << ToString(l2[i]) << "\t";
+			if (!((i + 1) % 10)) {
+				std::cout << "\n";
+			}
 		}
-	}
-	std::cout << "\n";
-	if (laserRanges != this->laserRanges) {
-		exit(1);
+		std::cout << "\n";
+		if (laserRanges != this->laserRanges) {
+			exit(1);
+		}
 	}
 	this->update(cv, goal->angle, goal->distance);/* perform vfh+ */
 }

@@ -166,7 +166,8 @@ struct VfhPlus {
 	};
 	VfhPlus(Param const& param);
 	virtual ~VfhPlus();
-	static Eigen::Matrix<double, 361, 1>& convertScan(
+	/** @deprecated please use ConvertScan * 1e3 */
+	static Eigen::Matrix<double, 361, 1>& convertScanMM(
 		std::vector<float> const ranges,
 		double const angleMin,
 		double const angleIncrement,

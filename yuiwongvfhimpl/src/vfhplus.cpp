@@ -1009,7 +1009,8 @@ void VfhPlus::setMotion(double& linearX, int& turnrate, int const actualSpeed)
 	/*std::cout << "mx " << mx << " pickedDirection " << pickedDirection
 		<< " tr " << turnrate << "\n";*/
 }
-Eigen::Matrix<double, 361, 1>& VfhPlus::convertScan(
+/** @deprecated please use ConvertScan * 1e3 */
+Eigen::Matrix<double, 361, 1>& VfhPlus::convertScanMM(
 	std::vector<float> const ranges,
 	double const angleMin,
 	double const angleMax,

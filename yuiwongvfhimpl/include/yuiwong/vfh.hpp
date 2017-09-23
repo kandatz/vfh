@@ -15,30 +15,36 @@
 #ifndef YUIWONGVFHIMPL_VFP_HPP
 #define YUIWONGVFHIMPL_VFP_HPP 1
 #include <vector>
-#include <array>
 #include "Eigen/Eigen"
 namespace yuiwong {
 /**
+ * @brief convert sensor_msgs/LaserScan to M_PI [-HPi, HPi] degree result,
+ * if laser range more than [-HPi, HPi], laser will be cut,
+ * if laser range less than [-HPi, HPi], part or all result will be +inf
+ * @param[in] ranges valid ranges from LaserScan
+ * @param[in] angleMin valid angle_min from LaserScan
+ * @param[in] angleMax valid angle_max from LaserScan, should <= @a angleMin
+ * @param[in] angleIncrement valid angle_increment from LaserScan, should > 0
+ * @param[in|out] result convert result
+ * result in input params unit (usually meters), and for [-HPi, HPi],
+ * NOTE resultidx and resultidx+1 is same
  * @return
- * - full result laser [-HPi, HPi] to idx[0, 361]
- * - result in meters
+ * 0 front full converted
+ * 1 laser cutted and front full converted
+ * 2 some or all result no convert
+ * 3 laser cutted and result no convert
+ * @note
+ * - angleMin should <= angleMax
+ * - angleIncrement should > 0
+ * - angleMin and angleMax should let result at least 1,
+ *   else no convert and all result is inf
+ * - ranges / .. should be valid
  */
-extern Eigen::Matrix<double, 361, 1>& ConvertScan(
+extern int ConvertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
 	double const angleMax,
 	double const angleIncrement,
 	Eigen::Matrix<double, 361, 1>& result);
-/**
- * @return
- * - full result laser [-HPi, HPi] to idx[0, 361]
- * - result in meters
- */
-extern std::array<double, 361>& ConvertScan(
-	std::vector<float> const ranges,
-	double const angleMin,
-	double const angleMax,
-	double const angleIncrement,
-	std::array<double, 361>& result);
 }
 #endif
