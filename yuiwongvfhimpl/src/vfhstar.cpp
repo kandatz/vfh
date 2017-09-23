@@ -32,6 +32,8 @@ VfhStar::VfhStar(Param const& param):
 	windowDiameter(param.windowDiameter),
 	sectorAngle(param.sectorAngle),
 	maxSpeed(param.maxSpeed),
+	maxSpeedNarrowOpening(param.maxSpeedNarrowOpening),
+	maxSpeedWideOpening(param.maxSpeedWideOpening),
 	safetyDistance0ms(param.safetyDistance0ms),
 	safetyDistance1ms(param.safetyDistance1ms),
 	maxTurnrate0ms(param.maxTurnrate0ms),
@@ -41,6 +43,8 @@ VfhStar::VfhStar(Param const& param):
 	binaryHistogramLow1ms(param.binaryHistogramLow1ms),
 	binaryHistogramHigh1ms(param.binaryHistogramHigh1ms),
 	maxAcceleration(param.maxAcceleration),
+	u1(param.u1),
+	u2(param.u2),
 	minTurnRadiusSafetyFactor(param.minTurnRadiusSafetyFactor),
 	robotRadius(param.robotRadius) {}
 /** @brief start up the vfh* algorithm */
@@ -322,9 +326,7 @@ void VfhStar::update(
 		 * sets pickedDirection, lastPickedDirection,
 		 * and maxSpeedForPickedDirection
 		 */
-#		if 0
 		this->selectDirection();
-#		endif
 	}
 	YUIWONGLOGNDEBU("VfhStar", "pickedDirection %lf", this->pickedDirection);
 	/*
@@ -505,78 +507,169 @@ void VfhStar::buildBinaryPolarHistogram(double const speed)
  * @param speed robot speed, m/s
  * @note this function also sets blocked circle radius
  */
-void VfhStar::buildMaskedPolarHistogram(double const /*speed*/)
+void VfhStar::buildMaskedPolarHistogram(double const speed)
 {
-#	if 0
-	double center_x_right, center_x_left, center_y, dist_r, dist_l;
-	double angle_ahead, phi_left, phi_right, angle;
-	// center_x_[left|right] is the centre of the circles on either side that
-	// are blocked due to the robot's dynamics. Units are in cells, in the robot's
-	// local coordinate system (+y is forward).
-	center_x_right = CENTER_X + (Min_Turning_Radius[speed] / (double)CELL_WIDTH);
-	center_x_left = CENTER_X - (Min_Turning_Radius[speed] / (double)CELL_WIDTH);
-	center_y = CENTER_Y;
-	angle_ahead = 90;
-	phi_left = 180;
-	phi_right = 0;
-	Blocked_Circle_Radius = Min_Turning_Radius[speed] + ROBOT_RADIUS + Get_Safety_Dist(speed);
-	//
-	// This loop fixes phi_left and phi_right so that they go through the inside-most
-	// occupied cells inside the left/right circles. These circles are centred at the
-	// left/right centres of rotation, and are of radius Blocked_Circle_Radius.
-	//
-	// We have to go between phi_left and phi_right, due to our minimum turning radius.
-	//
-	//
-	// Only loop through the cells in front of us.
-	//
-	for(y = 0;y<(int)ceil(WINDOW_DIAMETER/2.0);y++)
+	/*
+	 * centerX[left|right] is the centre of the circles on either side that
+	 * are blocked due to the robot's dynamics.
+	 * Units are in cells, in the robot's local coordinate system
+	 * (here +y is forward)
+	 */
+	int const minTurningRadiusIdx = this->getMinTurningRadiusIndex(speed);
+	double const minTurningRadius =
+		this->minTurningRadius[minTurningRadiusIdx];
+	double const centerxright = this->centerX
+		+ (minTurningRadius / this->cellWidth);
+	double const centerxleft = this->centerX
+		- (minTurningRadius / this->cellWidth);
+	double const centery = this->centerY;
+	this->blockedCircleRadius = minTurningRadius + this->robotRadius
+		+ this->getSafetyDistance(speed);
+	/*
+	 * This loop fixes phi_left and phi_right so that they go through the inside-most
+	 * occupied cells inside the left/right circles. These circles are centred at the
+	 * left/right centres of rotation, and are of radius Blocked_Circle_Radius.
+	 * We have to go between phi_left and phi_right, due to our minimum turning radius.
+	 * Only loop through the cells in front of us.
+	 */
+	int const n = ::ceil(this->windowDiameter / 2.0);
+	double phi_left = M_PI;
+	double phi_right = 0;
+	double angleahead = HPi;
+	for (int y = 0; y < n; ++y) {
+		for (int x = 0; x < this->windowDiameter; ++x) {
+			if (DoubleCompare(this->cellMag[x][y]) == 0) {
+				continue;
+			}
+			double const d = this->cellDirection[x][y];
+			if ((DoubleCompare(DeltaAngle(d, angleahead)) > 0)
+				&& (DoubleCompare(DeltaAngle(d, phi_right)) <= 0)) {
+				/* the cell is between phi_right and angle_ahead */
+				double const distr = ::hypot(centerxright - x, centery - y)
+					* this->cellWidth;
+				if (DoubleCompare(distr, this->blockedCircleRadius) < 0) {
+					phi_right = d;
+				}
+			} else if ((DoubleCompare(DeltaAngle(d, angleahead)) <= 0)
+				&& (DoubleCompare(DeltaAngle(d, phi_left)) > 0)) {
+				/* the cell is between phi_left and angle_ahead */
+				double const distl = ::hypot(centerxleft - x, centery - y)
+					* this->cellWidth;
+				if (DoubleCompare(distl, this->blockedCircleRadius) < 0) {
+					phi_left = d;
+				}
+			}
+		}
+	}
+	/* mask out everything outside phi_left and phi_right */
+	for (int x = 0; x < this->histogramSize; ++x) {
+		double const angle = x * this->sectorAngle;
+		auto& h = this->histogram[x];
+		if ((DoubleCompare(h) == 0)
+			&& (((DoubleCompare(DeltaAngle(angle, phi_right)) <= 0)
+			&& (DoubleCompare(DeltaAngle(angle, angleahead)) >= 0))
+			|| ((DoubleCompare(DeltaAngle(angle, phi_left)) >= 0)
+			&& (DoubleCompare(DeltaAngle(angle, angleahead)) <= 0)))) {
+			h = 0;
+		} else {
+			h = 1;
+		}
+	}
+}
+/** @brief select the used direction */
+void VfhStar::selectDirection()
+{
+	this->candidateAngle.clear();
+	this->candidateSpeed.clear();
+	/* set start to sector of first obstacle */
+	int start = -1;
 	{
-	for(x = 0;x<WINDOW_DIAMETER;x++)
-	{
-	if (Cell_Mag[x][y] == 0)
-	continue;
-	if ((deltaAngle(Cell_Direction[x][y], angle_ahead) > 0) &&
-	(deltaAngle(Cell_Direction[x][y], phi_right) <= 0))
-	{
-	// The cell is between phi_right and angle_ahead
-	dist_r = hypot(center_x_right - x, center_y - y) * CELL_WIDTH;
-	if (dist_r < Blocked_Circle_Radius)
-	{
-	phi_right = Cell_Direction[x][y];
+	/* only look at the forward 180deg for first obstacle */
+	int const n = this->histogramSize / 2;
+	for(int i = 0; i < n; ++i) {
+		if (DoubleCompare(this->histogram[i], 1) == 0) {
+			start = i;
+			break;
+		}
 	}
 	}
-	else if ((deltaAngle(Cell_Direction[x][y], angle_ahead) <= 0) &&
-	(deltaAngle(Cell_Direction[x][y], phi_left) > 0))
-	{
-	// The cell is between phi_left and angle_ahead
-	dist_l = hypot(center_x_left - x, center_y - y) * CELL_WIDTH;
-	if (dist_l < Blocked_Circle_Radius)
-	{
-	phi_left = Cell_Direction[x][y];
+	if (start == -1) {
+		this->pickedDirection = this->desiredDirection;
+		this->lastPickedDirection = this->pickedDirection;
+		this->maxSpeedForPickedDirection = this->currentMaxSpeed;
+		YUIWONGLOGNDEBU(
+			"VfhStar",
+			"no obstacles detected in front of us: "
+			"full speed towards goal: %lf, %lf, %lf",
+			 this->pickedDirection,
+			 this->lastPickedDirection,
+			 this->maxSpeedForPickedDirection);
+		return;
 	}
+	/* find the left and right borders of each opening */
+	std::vector<std::pair<int, double> > border;
+	std::pair<int,int> newborder;
+	int const n = start + this->histogramSize;
+	bool left = true;
+	for (int i = start;i <= n; ++i) {
+		if ((DoubleCompare(this->histogram[i % this->histogramSize]) == 0)
+			&& left) {
+			newborder.first = (i % this->histogramSize) * this->sectorAngle;
+			left = false;
+		}
+		if ((DoubleCompare(this->histogram[i % this->histogramSize], 1) == 0)
+			&& (!left)) {
+			newborder.second = ((i % this->histogramSize) - 1)
+				* this->sectorAngle;
+			newborder.second = NormalizeAnglePositive(newborder.second);
+			border.push_back(newborder);
+			left = true;
+		}
 	}
+	/* consider each opening */
+	double const veryNarrowO = DegreeToRadian(10);
+	double const narrowO = DegreeToRadian(80);
+	double const r40 = DegreeToRadian(40);
+	for (auto const& b: border) {
+		double const angle = DeltaAngle(b.first, b.second);
+		if (DoubleCompare(::fabs(angle), veryNarrowO) < 0) {
+			continue;/* ignore very narrow openings */
+		}
+		if (DoubleCompare(::fabs(angle), narrowO) < 0) {
+			/* narrow opening: aim for the centre */
+			double const newangle = b.first + (b.second - b.first) / 2.0;
+			this->candidateAngle.push_back(newangle);
+			this->candidateSpeed.push_back(std::min(
+				this->currentMaxSpeed, this->maxSpeedNarrowOpening));
+		} else {
+			/*
+			 * wide opening: consider the centre, and 'r40' from each border
+			 */
+			double newangle = b.first + (b.second - b.first) / 2.0;
+			this->candidateAngle.push_back(newangle);
+			this->candidateSpeed.push_back(this->currentMaxSpeed);
+			newangle = NormalizeAnglePositive(b.first + r40);
+			this->candidateAngle.push_back(newangle);
+			this->candidateSpeed.push_back(std::min(
+				this->currentMaxSpeed, this->maxSpeedWideOpening));
+			newangle = NormalizeAnglePositive(b.second - r40);
+			this->candidateAngle.push_back(newangle);
+			this->candidateSpeed.push_back(std::min(
+				this->currentMaxSpeed, this->maxSpeedWideOpening));
+			/* see if candidate dir is in this opening */
+			if ((DoubleCompare(DeltaAngle(
+				this->desiredDirection,
+				this->candidateAngle[this->candidateAngle.size() - 2])) < 0)
+				&& (DoubleCompare(DeltaAngle(
+				this->desiredDirection,
+				this->candidateAngle[this->candidateAngle.size() - 1])) > 0)) {
+				this->candidateAngle.push_back(this->desiredDirection);
+				this->candidateSpeed.push_back(std::min(
+					this->currentMaxSpeed, this->maxSpeedWideOpening));
+			}
+		}
 	}
-	}
-	//
-	// Mask out everything outside phi_left and phi_right
-	//
-	for(x = 0;x<HIST_SIZE;x++)
-	{
-	angle = x * SECTOR_ANGLE;
-	if ((Hist[x] == 0) && (((deltaAngle((double)angle, phi_right) <= 0) &&
-	(deltaAngle((double)angle, angle_ahead) >= 0)) ||
-	((deltaAngle((double)angle, phi_left) >= 0) &&
-	(deltaAngle((double)angle, angle_ahead) <= 0))))
-	{
-	Hist[x] = 0;
-	}
-	else
-	{
-	Hist[x] = 1;
-	}
-	}
-#	endif /* if 0 */
+	this->selectCandidateAngle();
 }
 /**
  * @brief the robot going too fast, such does it overshoot before it can
@@ -658,6 +751,16 @@ int VfhStar::getSpeedIndex(double const speed) const
 	YUIWONGLOGNDEBU("VfhStar", "speed index at %lf m/s: %d", speed, idx);
 	return idx;
 }
+/** @param speed linear x velocity, m/s, >=0 */
+int VfhStar::getMinTurningRadiusIndex(double const speed) const
+{
+	int idx = speed * 1e3;
+	ssize_t const sz = this->minTurningRadius.size();
+	if (idx >= sz) {
+		idx = sz - 1;
+	}
+	return sz;
+}
 /**
  * @brief calcualte the cells magnitude
  * @param laserRanges laser (or sonar) readings
@@ -719,5 +822,35 @@ double VfhStar::getBinaryHistogramHigh(double const speed) const
 {
 	return this->binaryHistogramHigh0ms - (speed *
 		(this->binaryHistogramHigh0ms - this->binaryHistogramHigh1ms));
+}
+/**
+ * @brief select the candidate angle to decide the direction using the
+ * given weights
+ */
+void VfhStar::selectCandidateAngle()
+{
+	if (this->candidateAngle.size() <= 0) {
+		/*
+		 * we're hemmed in by obstacles -- nowhere to go,
+		 * so brake hard and turn on the spot.
+		 */
+		this->pickedDirection = this->lastPickedDirection;
+		this->maxSpeedForPickedDirection = 0;
+		this->lastPickedDirection = this->pickedDirection;
+		return;
+	}
+	this->pickedDirection = HPi;
+	double minweight = std::numeric_limits<double>::max();
+	for (auto const& ca: this->candidateAngle) {
+		double const weight = this->u1 * ::fabs(DeltaAngle(
+			this->desiredDirection, ca))
+			+ this->u2 * ::fabs(DeltaAngle(this->lastPickedDirection, ca));
+		if (DoubleCompare(weight, minweight) < 0) {
+			minweight = weight;
+			this->pickedDirection = ca;
+			this->maxSpeedForPickedDirection = ca;
+		}
+	}
+	this->lastPickedDirection = this->pickedDirection;
 }
 }

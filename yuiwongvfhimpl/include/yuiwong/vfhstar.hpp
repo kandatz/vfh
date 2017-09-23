@@ -40,6 +40,8 @@ struct VfhStar {
 		 */
 		double sectorAngle;
 		double maxSpeed;/* in m/s */
+		double maxSpeedNarrowOpening;/* m/s */
+		double maxSpeedWideOpening;/* m/s */
 		double safetyDistance0ms;/* in meters */
 		double safetyDistance1ms;/* in meters */
 		double maxTurnrate0ms;/* radians/s */
@@ -49,6 +51,8 @@ struct VfhStar {
 		double binaryHistogramLow1ms;
 		double binaryHistogramHigh1ms;
 		double maxAcceleration;/* in m/s^2, default 0.1 m/s^2 */
+		double u1;
+		double u2;
 		double minTurnRadiusSafetyFactor;/* default 1.0 */
 		/** @param robotRadius, in meters, default 0.2 meters */
 		double robotRadius;
@@ -122,6 +126,8 @@ protected:
 	 * @note this function also sets blocked circle radius
 	 */
 	void buildMaskedPolarHistogram(double const speed);
+	/** @brief select the used direction */
+	void selectDirection();
 	/**
 	 * @brief the robot going too fast, such does it overshoot before it can
 	 * turn to the goal?
@@ -142,6 +148,7 @@ protected:
 	 * @return the index speed
 	 */
 	int getSpeedIndex(double const speed) const;
+	int getMinTurningRadiusIndex(double const speed) const;
 	/**
 	 * @brief calcualte the cells magnitude
 	 * @param laserRanges laser (or sonar) readings
@@ -157,10 +164,17 @@ protected:
 	 */
 	double getBinaryHistogramLow(double const speed) const;
 	double getBinaryHistogramHigh(double const speed) const;
+	/**
+	 * @brief select the candidate angle to decide the direction using the
+	 * given weights
+	 */
+	void selectCandidateAngle();
 	double const cellWidth;/* in meters */
 	int const windowDiameter;/* in cells */
 	double const sectorAngle;/* in radians */
 	double const maxSpeed;/* m/s */
+	double const maxSpeedNarrowOpening;/* m/s */
+	double const maxSpeedWideOpening;/* m/s */
 	double const safetyDistance0ms;/* in meters */
 	double const safetyDistance1ms;/* in meters */
 	/* scale turnrate linearly between these two */
@@ -171,6 +185,8 @@ protected:
 	double const binaryHistogramLow1ms;
 	double const binaryHistogramHigh1ms;
 	double const maxAcceleration;/* m/s^2 */
+	double const u1;
+	double const u2;
 	double const minTurnRadiusSafetyFactor;/* default 1.0 */
 	double robotRadius;/* in meters */
 	/*
@@ -211,6 +227,8 @@ protected:
 	 * access as: cellSector[speedIndex][x][y][sectorIndex]
 	 */
 	std::vector<std::vector<std::vector<std::vector<int> > > > cellSector;
+	std::vector<double> candidateAngle;
+	std::vector<double> candidateSpeed;
 	double stepDistance;/* ds */
 	int processTimes;/* ng */
 };
