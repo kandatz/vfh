@@ -1082,6 +1082,7 @@ void VfhPlus::convertScan(
 				/* probably this is not necessary */
 				step = step - 1;
 			}
+			/** FIXME not to rangeMax * 1e3!! */
 			r = ranges[startIndex + step] * 1e3;
 			if (DoubleCompare(r, 10.0) < 0) {
 				r = rangeMax * 1e3;
