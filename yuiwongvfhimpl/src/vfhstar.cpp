@@ -838,7 +838,7 @@ bool VfhStar::calculateCellsMagnitude(
 	 * Only deal with the cells in front of the robot,
 	 * since we can't sense behind.
 	 */
-	YUIWONGLOGDEBUS("laserRanges\n" << laserRanges);
+	YUIWONGLOGDEBUS("laserRanges\n" << laserRanges.transpose());
 	for (int x = 0; x < this->windowDiameter; ++x) {
 		int const n = ::ceil(this->windowDiameter / 2.0);
 		for (int y = 0; y < n; ++y) {

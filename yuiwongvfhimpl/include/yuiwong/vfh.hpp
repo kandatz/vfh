@@ -26,6 +26,7 @@ namespace yuiwong {
 extern Eigen::Matrix<double, 361, 1>& ConvertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
+	double const angleMax,
 	double const angleIncrement,
 	Eigen::Matrix<double, 361, 1>& result);
 /**
@@ -36,6 +37,7 @@ extern Eigen::Matrix<double, 361, 1>& ConvertScan(
 extern std::array<double, 361>& ConvertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
+	double const angleMax,
 	double const angleIncrement,
 	std::array<double, 361>& result);
 }

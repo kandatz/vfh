@@ -28,16 +28,18 @@ namespace yuiwong
 Eigen::Matrix<double, 361, 1>& ConvertScan(
 	std::vector<float> const ranges,
 	double const angleMin,
+	double const angleMax,
 	double const angleIncrement,
 	Eigen::Matrix<double, 361, 1>& result)
 {
 	double const raysPerDegree = DegreeToRadian(1) / angleIncrement;
+	double const range = angleMax - angleMin;
 	int laserOffset;
 	int resultOffset;
-	if (DoubleCompare(::fabs(angleMin), HPi) > 0) {
+	if (DoubleCompare(range, M_PI) > 0) {
 		laserOffset = (::fabs(angleMin) - HPi) / angleIncrement;
 		resultOffset = 0;
-	} else if (DoubleCompare(::fabs(angleMin), HPi) < 0) {
+	} else if (DoubleCompare(range, M_PI) < 0) {
 		laserOffset = 0;
 		resultOffset = ((HPi - ::fabs(angleMin)) / angleIncrement)
 			/ raysPerDegree;

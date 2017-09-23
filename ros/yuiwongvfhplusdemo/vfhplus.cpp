@@ -185,6 +185,7 @@ void VfhPlusNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 			ConvertScan(
 				scan->ranges,
 				scan->angle_min,
+				scan->angle_max,
 				scan->angle_increment,
 				this->laserRanges);
 			this->update(cv, 0, 0);/* perform vfh+ */
@@ -195,9 +196,37 @@ void VfhPlusNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 	ConvertScan(
 		scan->ranges,
 		scan->angle_min,
+		scan->angle_max,
 		scan->angle_increment,
 		this->laserRanges);
-	this->laserRanges *= 1e-3;
+	this->laserRanges *= 1e3;
+	auto const& l = this->laserRanges.transpose();
+	for (int i = 0; i < 361; ++i) {
+		std::cout << ToString(l[i]) << "\t";
+		if (!((i + 1) % 10)) {
+			std::cout << "\n";
+		}
+	}
+	std::cout << "\n\n";
+	Eigen::Matrix<double, 361, 1> laserRanges;
+	VfhPlus::convertScan(
+		scan->ranges,
+		scan->angle_min,
+		scan->angle_max,
+		scan->angle_increment,
+		laserRanges);
+	//std::cout << laserRanges.transpose() << "!!!\n";
+	auto const& l2 = laserRanges.transpose();
+	for (int i = 0; i < 361; ++i) {
+		std::cout << ToString(l2[i]) << "\t";
+		if (!((i + 1) % 10)) {
+			std::cout << "\n";
+		}
+	}
+	std::cout << "\n";
+	if (laserRanges != this->laserRanges) {
+		exit(1);
+	}
 	this->update(cv, goal->angle, goal->distance);/* perform vfh+ */
 }
 void VfhPlusNode::update(double const v, double const a, double const d)

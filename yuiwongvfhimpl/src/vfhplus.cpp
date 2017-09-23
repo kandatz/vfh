@@ -1033,10 +1033,11 @@ Eigen::Matrix<double, 361, 1>& VfhPlus::convertScan(
 			if ((startIndex + step) >= n) {
 				continue;
 			}
-			r = ranges[startIndex + step] * 1e3;
+			r = ranges[startIndex + step];
 			if (std::isnan(r)) {
 				continue;
 			}
+			r *= 1e3;
 			/*if (DoubleCompare(r, 10.0) < 0) {
 				r = rangeMax * 1e3;
 			}*/
@@ -1052,6 +1053,7 @@ Eigen::Matrix<double, 361, 1>& VfhPlus::convertScan(
 			result[i * 2 + 1] = r;
 		}
 	}
+	result[360] = result[359];
 	return result;
 }
 void VfhPlus::convertScan(

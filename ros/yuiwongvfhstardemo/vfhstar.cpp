@@ -149,6 +149,7 @@ void VfhStarNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 			ConvertScan(
 				scan->ranges,
 				scan->angle_min,
+				scan->angle_max,
 				scan->angle_increment,
 				this->laserRanges);
 			this->update(cv, 0, 0);/* perform vfh+ */
@@ -159,6 +160,7 @@ void VfhStarNode::scanCallback(sensor_msgs::LaserScanConstPtr const& scan)
 	ConvertScan(
 		scan->ranges,
 		scan->angle_min,
+		scan->angle_max,
 		scan->angle_increment,
 		this->laserRanges);
 	this->update(cv, goal->angle, goal->distance);/* perform vfh+ */
