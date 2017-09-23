@@ -21,14 +21,16 @@
 #include "yuiwong/angle.hpp"
 namespace yuiwong
 {
-static std::ostream& operator<<(std::ostream& os, std::vector<double> const& v)
+static std::ostream& operator<<(
+	std::ostream& os, std::vector<double> const& v)
 {
 	for (auto const& d: v) {
 		os << d << " ";
 	}
 	return os;
 }
-static std::ostream& operator<<(std::ostream& os, std::array<double, 361> const& a)
+static std::ostream& operator<<(
+	std::ostream& os, std::array<double, 361> const& a)
 {
 	for (auto const& d: a) {
 		os << d << " ";
@@ -645,7 +647,7 @@ void VfhStar::selectDirection()
 	/* set start to sector of first obstacle */
 	int start = -1;
 	{
-	std::cout << "histogram\n" << this->histogram << "\n";
+	YUIWONGLOGDEBUS("histogram\n" << this->histogram);
 	/* only look at the forward 180deg for first obstacle */
 	int const n = this->histogramSize / 2;
 	for(int i = 0; i < n; ++i) {
@@ -844,7 +846,7 @@ bool VfhStar::calculateCellsMagnitude(
 	 * Only deal with the cells in front of the robot,
 	 * since we can't sense behind.
 	 */
-	std::cout << "laserRanges\n" << laserRanges << "\n";
+	YUIWONGLOGDEBUS("laserRanges\n" << laserRanges);
 	for (int x = 0; x < this->windowDiameter; ++x) {
 		int const n = ::ceil(this->windowDiameter / 2.0);
 		for (int y = 0; y < n; ++y) {

@@ -184,8 +184,8 @@ void VfhStarNode::update(double const v, double const a, double const d)
 }
 int main(int argc, char** argv)
 {
-	yuiwong::kDebugLevel = yuiwong::LogLevel::Deta;
-	ros::init(argc, argv, "vfhplus");
+	//yuiwong::kDebugLevel = yuiwong::LogLevel::Deta;
+	ros::init(argc, argv, "vfhstar");
 	ros::NodeHandle nh;
 	ros::NodeHandle pnh("~");
 	yuiwong::VfhStarNode vfh(nh, pnh);
