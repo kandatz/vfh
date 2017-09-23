@@ -13,13 +13,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * ======================================================================== */
 #include "yuiwong/vfhstar.hpp"
+#include <math.h>
+#include <iostream>
 #include "yuiwong/debug.hpp"
 #include "yuiwong/time.hpp"
 #include "yuiwong/math.hpp"
 #include "yuiwong/angle.hpp"
-#include <math.h>
 namespace yuiwong
 {
+static std::ostream& operator<<(std::ostream& os, std::vector<double> const& v)
+{
+	for (auto const& d: v) {
+		os << d << " ";
+	}
+	return os;
+}
+static std::ostream& operator<<(std::ostream& os, std::array<double, 361> const& a)
+{
+	for (auto const& d: a) {
+		os << d << " ";
+	}
+	return os;
+}
 VfhStar::Param::Param():
 	cellWidth(0.1),
 	windowDiameter(60),
@@ -73,7 +88,6 @@ VfhStar::VfhStar(Param const& param):
 	} else {
 		this->cellSectorTablesCount = 20;
 	}
-	
 }
 /** @brief start up the vfh* algorithm */
 void VfhStar::init()
@@ -122,14 +136,14 @@ void VfhStar::init()
 	double plus_sector_to_plus_dir = 0;
 	for (int x = 0; x < this->windowDiameter; ++x) {
 		for (int y = 0; y < this->windowDiameter; ++y) {
-			this->cellMag[x][y] = 0;
+			this->cellMagnitude[x][y] = 0;
 			this->cellDistance[x][y] = ::sqrt(
 				::pow((this->centerX - x), 2.0)
 				+ ::pow((this->centerY - y), 2.0)) * this->cellWidth;
 			//Cell_Base_Mag[x][y] = pow((3000.0 - Cell_Dist[x][y]), 4)
 			//	/ 100000000.0;
-			this->cellBaseMag[x][y] = ::pow(
-				(3e3 - (this->cellDistance[x][y] * 1e3)), 4.0) / 1e8;
+			this->cellBaseMagnitude[x][y] = ::pow(
+				(3e3 - (this->cellDistance[x][y] * 1e3)), 4.0) / 1e8 / 1e3;
 			/* set up cell direction with the angle in radians to each cell */
 			if (x < this->centerX) {
 				if (y < centerY) {
@@ -343,8 +357,7 @@ void VfhStar::update(
 	 * work out how much time has elapsed since the last update,
 	 * so we know how much to increase speed by, given MAX_ACCELERATION.
 	 */
-	YUIWONGLOGNDEBU("VfhStar", "buildPrimaryPolarHistogram");
-	if (this->buildPrimaryPolarHistogram(laserRanges,currentPoseSpeed) == 0) {
+	if (!this->buildPrimaryPolarHistogram(laserRanges,currentPoseSpeed)) {
 		/*
 		 * something's inside our safety distance:
 		 * brake hard and turn on the spot
@@ -356,12 +369,11 @@ void VfhStar::update(
 		this->buildBinaryPolarHistogram(currentPoseSpeed);
 		this->buildMaskedPolarHistogram(currentPoseSpeed);
 		/*
-		 * sets pickedDirection, lastPickedDirection,
+		 * set pickedDirection, lastPickedDirection,
 		 * and maxSpeedForPickedDirection
 		 */
 		this->selectDirection();
 	}
-	YUIWONGLOGNDEBU("VfhStar", "pickedDirection %lf", this->pickedDirection);
 	/*
 	 * ok, so now we've chosen a direction. time to choose a speed.
 	 * how much can we change our speed by?
@@ -385,31 +397,41 @@ void VfhStar::update(
 	}
 	if (this->cannotTurnToGoal()) {
 		/*
-		 * the goal's too close -- we can't turn tightly enough to
-		 * get to it, so slow down...
+		 * the goal too close -- we can't turn tightly enough to
+		 * get to it, so slow down
 		 */
+		YUIWONGLOGNDEBU("VfhStar", "too close: cannotTurnToGoal");
 		speedIncr = -speedIncr;
 	}
+	double const maxvForDistance = std::min(
+		this->maxSpeed,
+		this->maxAcceleration * (goalDistance / ::fabs(speedIncr)));
 	/* accelerate (if we're not already at maxSpeedForPickedDirection) */
 	double const v = this->lastChosenLinearX + speedIncr;
 	double chosenLinearX0 = std::min(
 		v, static_cast<double>(this->maxSpeedForPickedDirection));
-	YUIWONGLOGNDEBU(
-		"VfhStar", "max speed %lf for picked angle",
-		this->maxSpeedForPickedDirection);
 	/* set the chosen turnrate, and possibly modify the chosen speed */
 	double chosenTurnrate = 0;
-	this->setMotion(chosenLinearX0, chosenTurnrate, currentPoseSpeed);
-	chosenLinearX = chosenLinearX0;
+	this->setMotion(currentPoseSpeed, chosenLinearX0, chosenTurnrate);
+	chosenLinearX = std::min(maxvForDistance, chosenLinearX0);
 	chosenAngularZ = NormalizeAngle(chosenTurnrate);
 	this->lastChosenLinearX = chosenLinearX0;
+	YUIWONGLOGNDEBU(
+		"VfhStar",
+		"goal %lf %lf -> picked direction %lf -> max lx %lf -> final %lf %lf",
+		goalDirection,
+		goalDistance,
+		this->pickedDirection,
+		this->maxSpeedForPickedDirection,
+		this->lastChosenLinearX,
+		chosenAngularZ);
 }
 /**
  * @brief get the safety distance at the given speed
  * @param speed given speed, in m/s
- * @return the safety distance
+ * @return the safety distance, in meters
  */
-int VfhStar::getSafetyDistance(double const speed) const
+double VfhStar::getSafetyDistance(double const speed) const
 {
 	double d = this->zeroSafetyDistance + (speed
 		* (this->maxSafetyDistance - this->zeroSafetyDistance));
@@ -461,16 +483,16 @@ void VfhStar::allocate()
 {
 	YUIWONGLOGNDEBU("VfhStar", "allocate ..");
 	this->cellDirection.clear();
-	this->cellBaseMag.clear();
-	this->cellMag.clear();
+	this->cellBaseMagnitude.clear();
+	this->cellMagnitude.clear();
 	this->cellDistance.clear();
 	this->cellEnlarge.clear();
 	this->cellSector.clear();
 	{
 	std::vector<double> const tempv(this->windowDiameter, 0);
 	this->cellDirection.resize(this->windowDiameter, tempv);
-	this->cellBaseMag.resize(this->windowDiameter, tempv);
-	this->cellMag.resize(this->windowDiameter, tempv);
+	this->cellBaseMagnitude.resize(this->windowDiameter, tempv);
+	this->cellMagnitude.resize(this->windowDiameter, tempv);
 	this->cellDistance.resize(this->windowDiameter, tempv);
 	this->cellEnlarge.resize(this->windowDiameter, tempv);
 	}
@@ -492,16 +514,18 @@ void VfhStar::allocate()
  * @brief build the primary polar histogram
  * @param laserRanges laser (or sonar) readings
  * @param speed robot speed
- * @return false when something's inside our safety distance,
+ * @return false when something inside our safety distance,
  * should brake hard and turn on the spot, else return true
  */
 bool VfhStar::buildPrimaryPolarHistogram(
 	std::array<double, 361> const& laserRanges, double const speed)
 {
-	/* index into the vector of cell_sector tables */
+	YUIWONGLOGNDEBU("VfhStar", "buildPrimaryPolarHistogram");
+	/* index into the vector of cell sector tables */
 	std::fill(this->histogram.begin(), this->histogram.end(), 0);
 	if (!this->calculateCellsMagnitude(laserRanges, speed)) {
 		/* set hist to all blocked */
+		YUIWONGLOGNDEBU("VfhStar", "histogram all blocked: 1");
 		std::fill(this->histogram.begin(), this->histogram.end(), 1);
 		return false;
 	}
@@ -511,7 +535,7 @@ bool VfhStar::buildPrimaryPolarHistogram(
 	for (int y = 0;y <= n; ++y) {
 		for (int x = 0; x < this->windowDiameter; ++x) {
 			auto& tmp = this->cellSector[speedIndex][x][y];
-			std::fill(tmp.begin(), tmp.end(), this->cellMag[x][y]);
+			std::fill(tmp.begin(), tmp.end(), this->cellMagnitude[x][y]);
 		}
 	}
 	return true;
@@ -522,6 +546,7 @@ bool VfhStar::buildPrimaryPolarHistogram(
  */
 void VfhStar::buildBinaryPolarHistogram(double const speed)
 {
+	YUIWONGLOGNDEBU("VfhStar", "buildBinaryPolarHistogram");
 	for (int x = 0; x < this->histogramSize; ++x) {
 		if (DoubleCompare(
 			this->histogram[x], this->getObsBinaryHistogram(speed)) > 0) {
@@ -544,6 +569,7 @@ void VfhStar::buildBinaryPolarHistogram(double const speed)
  */
 void VfhStar::buildMaskedPolarHistogram(double const speed)
 {
+	YUIWONGLOGNDEBU("VfhStar", "buildMaskedPolarHistogram");
 	/*
 	 * centerX[left|right] is the centre of the circles on either side that
 	 * are blocked due to the robot's dynamics.
@@ -573,7 +599,7 @@ void VfhStar::buildMaskedPolarHistogram(double const speed)
 	double angleahead = HPi;
 	for (int y = 0; y < n; ++y) {
 		for (int x = 0; x < this->windowDiameter; ++x) {
-			if (DoubleCompare(this->cellMag[x][y]) == 0) {
+			if (DoubleCompare(this->cellMagnitude[x][y]) == 0) {
 				continue;
 			}
 			double const d = this->cellDirection[x][y];
@@ -619,6 +645,7 @@ void VfhStar::selectDirection()
 	/* set start to sector of first obstacle */
 	int start = -1;
 	{
+	std::cout << "histogram\n" << this->histogram << "\n";
 	/* only look at the forward 180deg for first obstacle */
 	int const n = this->histogramSize / 2;
 	for(int i = 0; i < n; ++i) {
@@ -634,7 +661,7 @@ void VfhStar::selectDirection()
 		this->maxSpeedForPickedDirection = this->currentMaxSpeed;
 		YUIWONGLOGNDEBU(
 			"VfhStar",
-			"no obstacles detected in front of us: "
+			"front no obstacle detected: "
 			"full speed towards goal: %lf, %lf, %lf",
 			 this->pickedDirection,
 			 this->lastPickedDirection,
@@ -646,7 +673,7 @@ void VfhStar::selectDirection()
 	std::pair<int,int> newborder;
 	int const n = start + this->histogramSize;
 	bool left = true;
-	for (int i = start;i <= n; ++i) {
+	for (int i = start; i <= n; ++i) {
 		if ((DoubleCompare(this->histogram[i % this->histogramSize]) == 0)
 			&& left) {
 			newborder.first = (i % this->histogramSize) * this->sectorAngle;
@@ -725,18 +752,18 @@ bool VfhStar::cannotTurnToGoal() const
 	 * this is the distance between the centre of the goal and
 	 * the centre of the blocked circle
 	 */
-	double dist_between_centres = ::hypot(
+	double distBetweenCentres = ::hypot(
 		goalx - this->blockedCircleRadius, goaly);
 	if (DoubleCompare(
-		dist_between_centres + this->goalDistanceTolerance,
+		distBetweenCentres + this->goalDistanceTolerance,
 		this->blockedCircleRadius) < 0) {
 		/* right circle */
 		return true;
 	}
-	dist_between_centres = ::hypot(
+	distBetweenCentres = ::hypot(
 		-goalx - this->blockedCircleRadius, goaly);
 	if (DoubleCompare(
-		dist_between_centres + this->goalDistanceTolerance,
+		distBetweenCentres + this->goalDistanceTolerance,
 		this->blockedCircleRadius) < 0) {
 		/* left circle */
 		return true;
@@ -805,34 +832,55 @@ int VfhStar::getMinTurningRadiusIndex(double const speed) const
 bool VfhStar::calculateCellsMagnitude(
 	std::array<double, 361> const& laserRanges, double const speed)
 {
-	double const safeSpeed = this->getSafetyDistance(speed);
-	double const r = this->robotRadius + safeSpeed;
-	// AB: This is a bit dodgy... Makes it possible to miss really skinny obstacles, since if the
-	// resolution of the cells is finer than the resolution of laser_ranges, some ranges might be missed.
-	// Rather than looping over the cells, should perhaps loop over the laser_ranges.
-	// Only deal with the cells in front of the robot, since we can't sense behind.
+	double const safeD = this->getSafetyDistance(speed);
+	double const r = this->robotRadius + safeD;
+	/*
+	 * This is a bit dodgy...
+	 * Makes it possible to miss really skinny obstacles,
+	 * since if the resolution of the cells is finer than the resolution of
+	 * laser_ranges, some ranges might be missed.
+	 * Rather than looping over the cells,
+	 * should perhaps loop over the laserRanges.
+	 * Only deal with the cells in front of the robot,
+	 * since we can't sense behind.
+	 */
+	std::cout << "laserRanges\n" << laserRanges << "\n";
 	for (int x = 0; x < this->windowDiameter; ++x) {
 		int const n = ::ceil(this->windowDiameter / 2.0);
 		for (int y = 0; y < n; ++y) {
-			// controllo se il laser passa attraverso la cella
+			/* controllo se il laser passa attraverso la cella */
+			double const cdis = this->cellDistance[x][y];
+			double const cdir = this->cellDirection[x][y];
 			int const idx = static_cast<int>(::rint(
-				this->cellDirection[x][y] * 2.0));
-			if (DoubleCompare(
-				this->cellDistance[x][y] + (this->cellWidth / 2.0),
-				laserRanges[idx]) > 0) {
-				if ((DoubleCompare(this->cellDistance[x][y], r) < 0)
+				NormalizeDegreeAnglePositive(RadianToDegree(cdir * 2.0))));
+			double const lr = laserRanges[idx];
+			if (DoubleCompare(cdis + (this->cellWidth / 2.0), lr) > 0) {
+				if ((DoubleCompare(cdis, r) < 0)
 					&& !((x == this->centerX) && (y == this->centerY))) {
-					// Damn, something got inside our safety_distance...
-					// Short-circuit this process.
+					/*
+					 * damn, something got inside our safety distance...
+					 * short-circuit this process.
+					 */
+					YUIWONGLOGNDEBU(
+						"VfhStar",
+						"%d %d %d %d: %lf %lf lr %lf inside safety %lf",
+						this->centerX,
+						this->centerY,
+						x,
+						y,
+						cdir,
+						cdis,
+						lr,
+						r);
 					return false;
 				} else {
 					// cella piena quindi:
 					// assegno alla cella il peso che dipende dalla distanza
-					this->cellMag[x][y] = this->cellBaseMag[x][y];
+					this->cellMagnitude[x][y] = this->cellBaseMagnitude[x][y];
 				}
 			} else {
-				// è vuota perchè il laser ci passa oltre!!!!
-				this->cellMag[x][y] = 0.0;
+				/* è vuota perchè il laser ci passa oltre!!!! */
+				this->cellMagnitude[x][y] = 0.0;
 			}
 		}
 	}

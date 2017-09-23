@@ -153,9 +153,9 @@ struct VfhStar {
 	/**
 	 * @brief get the safety distance at the given speed
 	 * @param speed given speed, in m/s
-	 * @return the safety distance
+	 * @return the safety distance, in meters
 	 */
-	int getSafetyDistance(double const speed) const;
+	double getSafetyDistance(double const speed) const;
 	/**
 	 * @brief set the current max speed
 	 * @param maxSpeed current max speed, in m/s
@@ -173,7 +173,7 @@ protected:
 	 * @brief build the primary polar histogram
 	 * @param laserRanges laser (or sonar) readings
 	 * @param speed robot speed
-	 * @return false when something's inside our safety distance,
+	 * @return false when something inside our safety distance,
 	 * should brake hard and turn on the spot, else return true
 	 */
 	bool buildPrimaryPolarHistogram(
@@ -282,9 +282,9 @@ protected:
 	 */
 	std::vector<double> histogram;
 	std::vector<double> lastBinaryHistogram;
-	std::vector<std::vector<double> > cellMag;
+	std::vector<std::vector<double> > cellMagnitude;
 	std::vector<std::vector<double> > cellDistance;/* in metres */
-	std::vector<std::vector<double> > cellBaseMag;
+	std::vector<std::vector<double> > cellBaseMagnitude;
 	std::vector<std::vector<double> > cellDirection;
 	std::vector<std::vector<double> > cellEnlarge;
 	/*
