@@ -23,6 +23,8 @@ namespace yuiwong {
  * - vfh http://www-personal.umich.edu/~johannb/Papers/paper16.pdf
  */
 struct VfhStar {
+	constexpr static double defaultTolerance = 0.2;
+	constexpr static double defaultStampTolerance = 0.2;
 	struct Param {
 		/**
 		 * @param cellWidth, local occupancy map grid size, in meters,
@@ -269,13 +271,8 @@ protected:
 	int histogramSize;/* in sectors (over 360 degree) */
 	int cellSectorTablesCount;
 	double currentMaxSpeed;/* in m/s */
-	/* keep track of last update, so we can monitor acceleration */
-	double lastUpdateTime;
 	/* minimum turning radius at different speeds, in meters */
 	std::vector<double> minTurningRadius;
-	double desiredDirection, goalDistance, goalDistanceTolerance;
-	double lastChosenLinearX;/* in m/s */
-	double pickedDirection, lastPickedDirection;
 	double maxSpeedForPickedDirection;
 	/*
 	 * the histogram.
@@ -299,8 +296,14 @@ protected:
 	std::vector<std::vector<std::vector<std::vector<int> > > > cellSector;
 	std::vector<double> candidateAngle;
 	std::vector<double> candidateSpeed;
-	double stepDistance;/* ds */
-	int processTimes;/* ng */
+	double desiredDirection, goalDistance, goalDistanceTolerance;
+	double pickedDirection;
+	/* keep track of last update, so we can monitor acceleration */
+	double lastUpdateTime;
+	double lastChosenLinearX;/* in m/s */
+	double lastPickedDirection;
+	//double stepDistance;/* ds */
+	//int processTimes;/* ng */
 };
 }
 #endif

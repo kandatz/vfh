@@ -59,7 +59,22 @@ VfhStar::VfhStar(Param const& param):
 	desiredDirectionWeight(param.desiredDirectionWeight),
 	currentDirectionWeight(param.currentDirectionWeight),
 	minTurnRadiusSafetyFactor(param.minTurnRadiusSafetyFactor),
-	robotRadius(param.robotRadius) {}
+	robotRadius(param.robotRadius),
+	desiredDirection(HPi),
+	pickedDirection(HPi),
+	lastUpdateTime(-1.0),
+	lastChosenLinearX(0),
+	lastPickedDirection(pickedDirection)
+{
+	if (DoubleCompare(
+		this->zeroSafetyDistance, this->maxSafetyDistance) == 0) {
+		/* for the simple case of a fixed safety_dist, keep things simple */
+		this->cellSectorTablesCount = 1;
+	} else {
+		this->cellSectorTablesCount = 20;
+	}
+	
+}
 /** @brief start up the vfh* algorithm */
 void VfhStar::init()
 {
@@ -72,13 +87,14 @@ void VfhStar::init()
 	 */
 	YUIWONGLOGNDEBU(
 		"VfhStar",
-		"cellWidth %1.1lf windowDiameter %d sectorAngle %lf "
+		"cellWidth %1.1lf windowDiameter %d sectorAngle %lf histogramSize %d "
 		"robotRadius %1.1lf safetyDistance %lf %lf maxSpeed %lf "
 		"maxTurnrate %lf %lf freespace cutoff %lf %lf obstacle cutoff %lf %lf"
 		"desired direction weight %lf current direction weight %lf",
 		this->cellWidth,
 		this->windowDiameter,
 		this->sectorAngle,
+		this->histogramSize,
 		this->robotRadius,
 		this->zeroSafetyDistance,
 		this->maxSafetyDistance,
@@ -303,7 +319,7 @@ void VfhStar::update(
 	double const now = NowSecond();
 	double const diffSeconds = now - this->lastUpdateTime;
 	this->lastUpdateTime = now;
-	this->desiredDirection = goalDirection + (M_PI / 2.0);
+	this->desiredDirection = goalDirection + HPi;
 	this->goalDistance = goalDistance;
 	this->goalDistanceTolerance = goalDistanceTolerance;
 	/*
@@ -400,7 +416,6 @@ int VfhStar::getSafetyDistance(double const speed) const
 	if (DoubleCompare(d) < 0) {
 		d = 0;
 	}
-	YUIWONGLOGNDEBU("VfhStar", "safety distance at %lf m/s: %lf", speed, d);
 	return d;
 }
 /**
@@ -413,7 +428,8 @@ void VfhStar::setCurrentMaxSpeed(double const maxSpeed)
 	int const n = static_cast<int>(this->currentMaxSpeed * 1e3) + 1;
 	this->minTurningRadius.resize(n);
 	// small chunks of forward movements and turns-in-place used to
-	// estimate turning radius, coz I'm too lazy to screw around with limits -> 0.
+	// estimate turning radius, coz I'm too lazy to screw around with limits
+	// -> 0
 	// Calculate the turning radius, indexed by speed.
 	// Probably don't need it to be precise (changing in 1mm increments).
 	// WARNING: This assumes that the max_turnrate that has been set for VFH is
@@ -443,6 +459,7 @@ double VfhStar::getMaxTurnrate(double const speed) const
 }
 void VfhStar::allocate()
 {
+	YUIWONGLOGNDEBU("VfhStar", "allocate ..");
 	this->cellDirection.clear();
 	this->cellBaseMag.clear();
 	this->cellMag.clear();
@@ -469,6 +486,7 @@ void VfhStar::allocate()
 	this->histogram.resize(this->histogramSize, 0);
 	this->lastBinaryHistogram.resize(this->histogramSize, 0);
 	this->setCurrentMaxSpeed(this->maxSpeed);
+	YUIWONGLOGNDEBU("VfhStar", "allocate done");
 }
 /**
  * @brief build the primary polar histogram
