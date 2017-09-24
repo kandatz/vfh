@@ -56,35 +56,35 @@ int ConvertScan(
 	int laserOffset;
 	int resultOffset;
 	if (DoubleCompare(angleMin, -HPi) < 0) {
-		YUIWONGLOGNDEBU("ConvertScan", "cut some beginning laser");
+		//YUIWONGLOGNDEBU("ConvertScan", "cut some beginning laser");
 		/* min in range [..., -HPi): cut some beginning laser */
 		laserOffset = (::fabs(angleMin) - HPi) / angleIncrement;
 		resultOffset = 0;
 	} else if ((DoubleCompare(angleMin) < 0)
 		&& (DoubleCompare(angleMin, -HPi) > 0)) {
-		YUIWONGLOGNDEBU("ConvertScan", "front result no convert");
+		//YUIWONGLOGNDEBU("ConvertScan", "front result no convert");
 		/* min: (-HPi, 0): some result cannot be set */
 		laserOffset = 0;
 		resultOffset = ((HPi - ::fabs(angleMin)) / angleIncrement)
 			/ raysPerDegree;
 	} else if (DoubleCompare(angleMin, HPi) > 0) {
-		YUIWONGLOGNDEBU("ConvertScan", "all result no convert");
+		//YUIWONGLOGNDEBU("ConvertScan", "all result no convert");
 		laserOffset = 0;/* invalid */
 		resultOffset = 180;
 	} else if (DoubleCompare(angleMin) > 0) {
-		YUIWONGLOGNDEBU("ConvertScan", "many front result no convert");
+		//YUIWONGLOGNDEBU("ConvertScan", "many front result no convert");
 		laserOffset = 0;
 		resultOffset = ((HPi + angleMin) / angleIncrement) / raysPerDegree;
 	} else {
-		YUIWONGLOGNDEBU("ConvertScan", "all laser used");
+		//YUIWONGLOGNDEBU("ConvertScan", "all laser used");
 		laserOffset = 0;
 		resultOffset = 0;
 	}
 	int const n = ranges.size();
-	YUIWONGLOGNDEBU(
+	/*YUIWONGLOGNDEBU(
 		"ConvertScan",
 		"resultOffset %d laserOffset %d n %d raysPerDegree %lf",
-		resultOffset, laserOffset, n, raysPerDegree);
+		resultOffset, laserOffset, n, raysPerDegree);*/
 	for (int i = 0; i < 361; ++i) {
 		result[i] = std::numeric_limits<double>::max();
 	}
@@ -97,7 +97,7 @@ int ConvertScan(
 			if (0 == rest) {
 				result[360] = ranges[n - 1];
 			} else {
-				YUIWONGLOGNWARN(
+				YUIWONGLOGNDEBU(
 					"ConvertScan", "back result no convert, rest %d", rest);
 				resultOffset = -1;
 			}
