@@ -89,7 +89,7 @@ int ConvertScan(
 		result[i] = std::numeric_limits<double>::max();
 	}
 	int step;
-	for (int i = resultOffset; i <= 180; ++i) {
+	for (int i = resultOffset; i < 180; ++i) {
 		step = static_cast<int>(raysPerDegree * (i - resultOffset));
 		/* calculate position in laser frame */
 		if ((laserOffset + step) >= n) {
@@ -108,6 +108,9 @@ int ConvertScan(
 			continue;
 		}
 		result[i * 2] = result[(i * 2) + 1] = r;
+	}
+	if (std::isinf(result[360])) {
+		result[360] = result[359];
 	}
 	if ((0 == laserOffset) && (0 == resultOffset)) {
 		return 0;
