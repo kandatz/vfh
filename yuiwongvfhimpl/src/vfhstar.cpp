@@ -86,8 +86,11 @@ BaseVfhStar::BaseVfhStar(Param const& param):
 /** @brief start up the vfh* algorithm */
 void BaseVfhStar::init()
 {
+	//center_x = (int)floor(window_diameter / 2.0);
 	this->centerX = static_cast<int>(::floor(this->windowDiameter / 2.0));
+	//center_y = center_x;
 	this->centerY = this->centerX;
+	//hist_size = (int)rint(360.0 / sector_angle);
 	this->histogramSize = static_cast<int>(::rint(DPi / this->sectorAngle));
 	/*
 	 * it works now
@@ -124,23 +127,28 @@ void BaseVfhStar::init()
 	 * - (x, y) = (0, 0) is to the front-left of the robot
 	 * - (x, y) = (max, 0) is to the front-right of the robot
 	 */
-	double neg_sector_to_neg_dir = 0;
-	double neg_sector_to_plus_dir = 0;
-	double plus_sector_to_neg_dir = 0;
-	double plus_sector_to_plus_dir = 0;
+	double negsectorToNegdir = 0;
+	double negsectorToPlusdir = 0;
+	double plussectorToNegdir = 0;
+	double plussectorToPlusdir = 0;
 	for (int x = 0; x < this->windowDiameter; ++x) {
 		for (int y = 0; y < this->windowDiameter; ++y) {
+			//cell_mag[x][y] = 0;
 			this->cellMagnitude[x][y] = 0;
+			//cell_dist[x][y] = sqrt(pow((center_x - x), 2)
+			//+ pow((center_y - y), 2)) * cell_width;
 			this->cellDistance[x][y] = ::sqrt(
 				::pow((this->centerX - x), 2.0)
 				+ ::pow((this->centerY - y), 2.0)) * this->cellWidth;
-			//Cell_Base_Mag[x][y] = pow((3000.0 - Cell_Dist[x][y]), 4)
+			//cell_base_mag[x][y] = pow((3000.0 - cell_dist[x][y]), 4)
 			//	/ 100000000.0;
 			this->cellBaseMagnitude[x][y] = ::pow(
-				(3e3 - (this->cellDistance[x][y] * 1e3)), 4.0) / 1e8 / 1e3;
+				(3e3 - (this->cellDistance[x][y])), 4.0) / 1e8;
 			/* set up cell direction with the angle in radians to each cell */
 			if (x < this->centerX) {
 				if (y < centerY) {
+					//cell_direction[x][y] =
+					//atan((double)(center_y - y) / (double)(center_x - x));
 					this->cellDirection[x][y] = ::atan2(
 						static_cast<double>(this->centerY - y),
 						static_cast<double>(this->centerX - x));
@@ -152,6 +160,8 @@ void BaseVfhStar::init()
 				} else if (y == this->centerY) {
 					this->cellDirection[x][y] = M_PI;
 				} else if (y > this->centerY) {
+					//cell_direction[x][y] =
+					//atan((double)(y - center_y) / (double)(center_x - x));
 					this->cellDirection[x][y] = ::atan2(
 						static_cast<double>(y - this->centerY),
 						static_cast<double>(this->centerX - x));
@@ -163,14 +173,20 @@ void BaseVfhStar::init()
 				}
 			} else if (x == this->centerX) {
 				if (y < centerY) {
-					this->cellDirection[x][y] = M_PI / 2.0;
+					//cell_direction[x][y] = 90.0;
+					this->cellDirection[x][y] = HPi;
 				} else if (y == this->centerY) {
-					this->cellDirection[x][y] = -1.0;
+					//cell_direction[x][y] = -1.0;
+					//this->cellDirection[x][y] = -1.0;
+					this->cellDirection[x][y] = -HpPiDiv180;
 				} else if (y > this->centerY) {
+					//cell_direction[x][y] = 270.0;
 					this->cellDirection[x][y] = (M_PI / 2.0) * 3.0;
 				}
 			} else if (x > this->centerX) {
 				if (y < this->centerY) {
+					//cell_direction[x][y] =
+					//atan((double)(center_y - y) / (double)(x - center_x));
 					this->cellDirection[x][y] = ::atan2(
 						static_cast<double>(this->centerY - y),
 						static_cast<double>(x - this->centerX));
@@ -178,6 +194,8 @@ void BaseVfhStar::init()
 				} else if (y == this->centerY) {
 					this->cellDirection[x][y] = 0.0;
 				} else if (y > this->centerY) {
+					//cell_direction[x][y] =
+					//atan((double)(y - center_y) / (double)(x - center_x));
 					this->cellDirection[x][y] = ::atan2(
 						static_cast<double>(y - this->centerY),
 						static_cast<double>(x - this->centerX));
@@ -185,7 +203,7 @@ void BaseVfhStar::init()
 					this->cellDirection[x][y] =
 						360.0 - this->cellDirection[x][y];*/
 					this->cellDirection[x][y] =
-						(2.0 * M_PI) - this->cellDirection[x][y];
+						DPi - this->cellDirection[x][y];
 				}
 			}
 			/*
@@ -195,7 +213,10 @@ void BaseVfhStar::init()
 			for (int cellSectorTabIdx = 0;
 				cellSectorTabIdx < this->cellSectorTablesCount;
 				++cellSectorTabIdx) {
-				int const max_speed_this_table =
+				//thistableMaxSpeed = (int)(((double)
+				//(cell_sector_tablenum+1)/(double)NUM_CELL_SECTOR_TABLES) *
+				//(double) MAX_SPEED);
+				int const thistableMaxSpeed =
 					(static_cast<double>(cellSectorTabIdx + 1)
 					/ static_cast<double>(this->cellSectorTablesCount))
 					* this->maxSpeed;
@@ -204,16 +225,21 @@ void BaseVfhStar::init()
 				 * be enlarged for this cell, at this speed
 				 */
 				if (DoubleCompare(this->cellDistance[x][y]) > 0) {
+					//r = robot_radius + get_safety_dist(thistableMaxSpeed);
 					double const r = this->robotRadius
-						+ this->getSafetyDistance(max_speed_this_table);
+						+ this->getSafetyDistance(thistableMaxSpeed);
+					//cell_enlarge[x][y] =
+					//(double)asin(r / cell_dist[x][y]) * (180/m_pi);
 					this->cellEnlarge[x][y] =
 						::asin(r / this->cellDistance[x][y]);
 				} else {
 					this->cellEnlarge[x][y] = 0;
 				}
 				this->cellSector[cellSectorTabIdx][x][y].clear();
+				//plusdir = cell_direction[x][y] + cell_enlarge[x][y];
 				double const plusDirection = this->cellDirection[x][y]
 					+ this->cellEnlarge[x][y];
+				//negdir = cell_direction[x][y] - cell_enlarge[x][y];
 				double const negDirection = this->cellDirection[x][y]
 					- this->cellEnlarge[x][y];
 				int const n = DPi / this->sectorAngle;
@@ -223,75 +249,88 @@ void BaseVfhStar::init()
 					 * set plusSector and negSector to the angles to the two
 					 * adjacent sectors
 					 */
+					//plussector = (i + 1) * (double)sector_angle;
 					double plusSector = (i + 1) * this->sectorAngle;
+					//negsector = i * (double)sector_angle;
 					double negSector = i * this->sectorAngle;
 					if (DoubleCompare(negSector - negDirection, M_PI) > 0) {
-						neg_sector_to_neg_dir = negDirection
+						//negsectorToNegdir = negdir - (negsector - 360);
+						negsectorToNegdir = negDirection
 							- (negSector - DPi);
 					} else if (DoubleCompare(negDirection - negSector, M_PI)
 						> 0) {
-						neg_sector_to_neg_dir = negSector
+						//negsectorToNegdir = negsector - (negdir + 360);
+						negsectorToNegdir = negSector
 							- (negDirection + DPi);
 					} else {
-						neg_sector_to_neg_dir = negDirection - negSector;
+						//negsectorToNegdir = negdir - negsector;
+						negsectorToNegdir = negDirection - negSector;
 					}
 					if (DoubleCompare(plusSector - negDirection, M_PI) > 0) {
-						plus_sector_to_neg_dir = negDirection
+						//plussectorToNegdir = negdir - (plussector - 360);
+						plussectorToNegdir = negDirection
 							- (plusSector - DPi);
 					} else if (DoubleCompare(negDirection - plusSector, M_PI)
 						> 0) {
-						plus_sector_to_neg_dir = plusSector
+						//plussectorToNegdir = plussector - (negdir + 360);
+						plussectorToNegdir = plusSector
 							- (negDirection + DPi);
 					} else {
-						plus_sector_to_neg_dir = negDirection - plusSector;
+						//plussectorToNegdir = negdir - plussector;
+						plussectorToNegdir = negDirection - plusSector;
 					}
 					if (DoubleCompare(plusSector - plusDirection, M_PI) > 0) {
-						plus_sector_to_plus_dir = plusDirection
+						//plussectorToPlusdir = plusdir - (plussector - 360);
+						plussectorToPlusdir = plusDirection
 							- (plusSector - DPi);
 					} else if (DoubleCompare(plusDirection - plusSector, M_PI)
 						> 0) {
-						plus_sector_to_plus_dir = plusSector
+						//plussectorToPlusdir = plussector - (plusdir + 360);
+						plussectorToPlusdir = plusSector
 							- (plusDirection + DPi);
 					} else {
-						plus_sector_to_plus_dir = plusDirection - plusSector;
+						//plussectorToPlusdir = plusdir - plussector;
+						plussectorToPlusdir = plusDirection - plusSector;
 					}
 					if (DoubleCompare(negSector - plusDirection, M_PI) > 0) {
-						neg_sector_to_plus_dir = plusDirection
+						//negsectorToPlusdir = plusdir - (negsector - 360);
+						negsectorToPlusdir = plusDirection
 							- (negSector - DPi);
 					} else if (DoubleCompare(plusDirection - negSector, M_PI)
 						> 0) {
-						neg_sector_to_plus_dir = negSector
+						//negsectorToPlusdir = negsector - (plusdir + 360);
+						negsectorToPlusdir = negSector
 							- (plusDirection + DPi);
 					} else {
-						neg_sector_to_plus_dir = plusDirection - negSector;
+						negsectorToPlusdir = plusDirection - negSector;
 					}
 				}
-				bool neg_dir_bw;
-				if ((DoubleCompare(neg_sector_to_neg_dir) >= 0)
-					&& (DoubleCompare(plus_sector_to_neg_dir) <= 0)) {
-					neg_dir_bw = true;
+				bool negdirbw;
+				if ((DoubleCompare(negsectorToNegdir) >= 0)
+					&& (DoubleCompare(plussectorToNegdir) <= 0)) {
+					negdirbw = true;
 				} else {
-					neg_dir_bw = false;
+					negdirbw = false;
 				}
-				bool plus_dir_bw;
-				if ((DoubleCompare(neg_sector_to_plus_dir) >= 0)
-					&& (DoubleCompare(plus_sector_to_plus_dir) <= 0)) {
-					plus_dir_bw = true;
+				bool plusdirbw;
+				if ((DoubleCompare(negsectorToPlusdir) >= 0)
+					&& (DoubleCompare(plussectorToPlusdir) <= 0)) {
+					plusdirbw = true;
 				} else {
-					plus_dir_bw = false;
+					plusdirbw = false;
 				}
-				bool dir_around_sector;
-				if ((DoubleCompare(neg_sector_to_neg_dir) <= 0)
-					&& (DoubleCompare(neg_sector_to_plus_dir) >= 0)) {
-					dir_around_sector = true;
+				bool diraroundsector;
+				if ((DoubleCompare(negsectorToNegdir) <= 0)
+					&& (DoubleCompare(negsectorToPlusdir) >= 0)) {
+					diraroundsector = true;
 				} else {
-					dir_around_sector = false;
+					diraroundsector = false;
 				}
-				if ((DoubleCompare(plus_sector_to_neg_dir) <= 0)
-					&& (DoubleCompare(plus_sector_to_plus_dir) >= 0)) {
-					plus_dir_bw = true;
+				if ((DoubleCompare(plussectorToNegdir) <= 0)
+					&& (DoubleCompare(plussectorToPlusdir) >= 0)) {
+					plusdirbw = true;
 				}
-				if (plus_dir_bw || neg_dir_bw || dir_around_sector) {
+				if (plusdirbw || negdirbw || diraroundsector) {
 					this->cellSector[cellSectorTabIdx][x][y].push_back(i);
 				}
 			}
@@ -397,9 +436,9 @@ void BaseVfhStar::update(
 		YUIWONGLOGNDEBU("BaseVfhStar", "too close: cannotTurnToGoal");
 		speedIncr = -speedIncr;
 	}
-	double const maxvForDistance = std::min(
+	/*double const maxvForDistance = std::min(
 		this->maxSpeed,
-		this->maxAcceleration * (goalDistance / ::fabs(speedIncr)));
+		this->maxAcceleration * (goalDistance / ::fabs(speedIncr)));*/
 	/* accelerate (if we're not already at maxSpeedForPickedDirection) */
 	double const v = this->lastChosenLinearX + speedIncr;
 	double chosenLinearX0 = std::min(
@@ -407,7 +446,8 @@ void BaseVfhStar::update(
 	/* set the chosen turnrate, and possibly modify the chosen speed */
 	double chosenTurnrate = 0;
 	this->setMotion(currentPoseSpeed, chosenLinearX0, chosenTurnrate);
-	chosenLinearX = std::min(maxvForDistance, chosenLinearX0);
+	/*chosenLinearX = std::min(maxvForDistance, chosenLinearX0);*/
+	chosenLinearX = chosenLinearX0;
 	chosenAngularZ = NormalizeAngle(chosenTurnrate);
 	this->lastChosenLinearX = chosenLinearX0;
 	YUIWONGLOGNDEBU(
@@ -677,7 +717,12 @@ void BaseVfhStar::selectDirection()
 			&& (!left)) {
 			newborder.second = ((i % this->histogramSize) - 1)
 				* this->sectorAngle;
-			newborder.second = NormalizeAnglePositive(newborder.second);
+			//if (new_border.second < 0) {
+			//new_border.second += 360;
+			//}
+			if (DoubleCompare(newborder.second) < 0) {
+				newborder.second += DPi;
+			}
 			border.push_back(newborder);
 			left = true;
 		}
@@ -704,11 +749,18 @@ void BaseVfhStar::selectDirection()
 			double newangle = b.first + (b.second - b.first) / 2.0;
 			this->candidateAngle.push_back(newangle);
 			this->candidateSpeed.push_back(this->currentMaxSpeed);
-			newangle = NormalizeAnglePositive(b.first + r40);
+			//new_angle = (double)((border[i].first + 40) % 360);
+			newangle = ::fmod(b.first + r40, DPi);
 			this->candidateAngle.push_back(newangle);
 			this->candidateSpeed.push_back(std::min(
 				this->currentMaxSpeed, this->maxSpeedWideOpening));
-			newangle = NormalizeAnglePositive(b.second - r40);
+			//new_angle = (double)(border[i].second - 40);
+			newangle = b.second - r40;
+			//if (new_angle < 0)
+			//new_angle += 360;
+			if (DoubleCompare(newangle) < 0) {
+				newangle += DPi;
+			}
 			this->candidateAngle.push_back(newangle);
 			this->candidateSpeed.push_back(std::min(
 				this->currentMaxSpeed, this->maxSpeedWideOpening));
@@ -725,6 +777,7 @@ void BaseVfhStar::selectDirection()
 			}
 		}
 	}
+	YUIWONGLOGDEBUS("candidateAngle " << this->candidateAngle);
 	this->selectCandidateAngle();
 }
 /**
@@ -930,5 +983,25 @@ void BaseVfhStar::selectCandidateAngle()
 		}
 	}
 	this->lastPickedDirection = this->pickedDirection;
+}
+void VfhStar::update(
+	Eigen::Matrix<double, 361, 1> const& laserRanges,
+	double const currentLinearX,
+	double const goalDirection,
+	double const goalDistance,
+	double const goalDistanceTolerance,
+	double& chosenLinearX,
+	double& chosenAngularZ)
+{
+	this->position = Eigen::Vector2d::Zero();
+	this->BaseVfhStar::update(
+		laserRanges,
+		currentLinearX,
+		goalDirection,
+		goalDistance,
+		goalDistanceTolerance,
+		chosenLinearX,
+		chosenAngularZ);
+	YUIWONGLOGDEBUS("candidateAngle " << this->candidateAngle);
 }
 }

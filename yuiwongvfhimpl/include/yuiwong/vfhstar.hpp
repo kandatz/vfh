@@ -223,7 +223,7 @@ protected:
 	 * @param speed robot speed, m/s
 	 * @return true
 	 */
-	bool calculateCellsMagnitude(
+	virtual bool calculateCellsMagnitude(
 		Eigen::Matrix<double, 361, 1> const& laserRanges, double const speed);
 	/**
 	 * @brief get the current low binary histogram threshold, obs, free
@@ -307,12 +307,30 @@ protected:
 	double lastUpdateTime;
 	double lastChosenLinearX;/* in m/s */
 	double lastPickedDirection;
-	//double stepDistance;/* ds */
-	//int processTimes;/* ng */
 };
 struct VfhStar: public BaseVfhStar {
 	VfhStar(Param const& param): BaseVfhStar(param) {}
 	virtual ~VfhStar() = default;
+	virtual void update(
+		Eigen::Matrix<double, 361, 1> const& laserRanges,
+		double const currentLinearX,
+		double const goalDirection,
+		double const goalDistance,
+		double const goalDistanceTolerance,
+		double& chosenLinearX,
+		double& chosenAngularZ) override;
+	inline void setProcessTimes(int const processTimes) {
+		this->processTimes = processTimes;
+	}
+protected:
+	/*virtual bool calculateCellsMagnitude(
+		Eigen::Matrix<double, 361, 1> const& laserRanges,
+		double const speed) override;*/
+	/** @brief ds, in meters, default 2 * radius */
+	double stepDistance;
+	/** @brief ng, default ::floor(goalDistance / stepDistance) or 1 */
+	int processTimes;
+	Eigen::Vector2d position;
 };
 }
 #endif
