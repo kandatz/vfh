@@ -20,6 +20,7 @@
 #include <iostream>
 #include "yuiwong/time.hpp"
 #include "yuiwong/angle.hpp"
+#include "yuiwong/debug.hpp"
 #define DTOR(d) ((d) * M_PI / 180)
 namespace yuiwong
 {
@@ -476,6 +477,9 @@ void VfhPlus::update(
 	chosenLinearX = chosenLinearX0;
 	chosenAngularZ = NormalizeAngle(DegreeToRadian(chosenTurnrate));
 	this->lastChosenLinearX = chosenLinearX0;
+	YUIWONGLOGDEBUS("FINAL speedIncr m/s " << speedIncr
+		<< " lx m/s " << chosenLinearX << " az r/s " << chosenAngularZ
+		<< " pickdire " << this->pickedDirection);
 }
 /**
 * The robot going too fast, such does it overshoot before it can turn to the goal?
@@ -614,8 +618,11 @@ if (start == -1)
 pickedDirection = desiredDirection;
 lastPickedDirection = pickedDirection;
 maxSpeedForPickedDirection = Current_Max_Speed;
-// printf("No obstacles detected in front of us: full speed towards goal: %f, %f, %d\n",
-// 		 pickedDirection, lastPickedDirection, maxSpeedForPickedDirection);
+	YUIWONGLOGNDEBU(
+		"VfhPlus",
+		"No obstacles detected in front of us: full speed towards goal: "
+		"%f, %f, %d",
+		pickedDirection, lastPickedDirection, maxSpeedForPickedDirection);
 return(1);
 }
 //
@@ -860,6 +867,7 @@ Hist[x] = 0;
 }
 if (Calculate_Cells_Mag(laserRanges, speed) == 0)
 {
+	YUIWONGLOGNDEBU("VfhPlus", "histogram all blocked: 1");
 // set Hist to all blocked
 for(x = 0;x<HIST_SIZE;x++) {
 Hist[x] = 1;
