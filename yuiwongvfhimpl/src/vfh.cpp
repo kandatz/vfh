@@ -31,6 +31,7 @@ namespace yuiwong
  * @param[in|out] result convert result
  * result in input params unit (usually meters), and for [-HPi, HPi],
  * NOTE resultidx and resultidx+1 is same
+ * @param[in] minDistance if distance < minDistance, then +inf
  * @return
  * 0 front full converted
  * 1 laser cutted and front full converted
@@ -48,7 +49,8 @@ int ConvertScan(
 	double const angleMin,
 	double const angleMax,
 	double const angleIncrement,
-	Eigen::Matrix<double, 361, 1>& result)
+	Eigen::Matrix<double, 361, 1>& result,
+	double const minDistance)
 {
 	double const range = angleMax - angleMin;
 	(void)(range);
@@ -105,6 +107,9 @@ int ConvertScan(
 		}
 		double const r = ranges[laserOffset + step];
 		if (std::isnan(r)) {
+			continue;
+		}
+		if (DoubleCompare(r, minDistance) < 0) {
 			continue;
 		}
 		result[i * 2] = result[(i * 2) + 1] = r;
