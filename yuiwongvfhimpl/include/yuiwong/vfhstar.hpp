@@ -15,6 +15,7 @@
 #ifndef YUIWONGVFHIMPL_VFPSTAR_HPP
 #define YUIWONGVFHIMPL_VFPSTAR_HPP 1
 #include <vector>
+#include "boost/optional.hpp"
 #include "Eigen/Eigen"
 namespace yuiwong {
 /**
@@ -87,6 +88,7 @@ struct BaseVfhStar {
 		 * in radians/s, default DegreeToRadian(40)
 		 */
 		double maxMaxTurnrate;
+		double turnrateIncre;/* scale/radian */
 		/**
 		 * @param zeroFreeSpaceCutoff
 		 * unitless value. the higher the value, the closer the robot will
@@ -252,6 +254,7 @@ protected:
 	 */
 	double const zeroMaxTurnrate;/* radians/s */
 	double const maxMaxTurnrate;/* radians/s */
+	double const turnrateIncre;/* scale/radian */
 	/**
 	 * @note
 	 * - free should >= obs
@@ -287,9 +290,9 @@ protected:
 	 */
 	std::vector<double> histogram;
 	std::vector<double> lastBinaryHistogram;
-	std::vector<std::vector<double> > cellMagnitude;
-	std::vector<std::vector<double> > cellDistance;/* in metres */
-	std::vector<std::vector<double> > cellBaseMagnitude;
+	std::vector<std::vector<double> > cellMagnitude;/* unitless */
+	std::vector<std::vector<double> > cellDistanceMM;/* in mm!! */
+	std::vector<std::vector<double> > cellBaseMagnitude;/* unitless */
 	std::vector<std::vector<double> > cellDirection;
 	std::vector<std::vector<double> > cellEnlarge;
 	/*
@@ -303,6 +306,7 @@ protected:
 	std::vector<double> candidateSpeed;
 	double desiredDirection, goalDistance, goalDistanceTolerance;
 	double pickedDirection;
+	double turnrateScale;
 	/* keep track of last update, so we can monitor acceleration */
 	double lastUpdateTime;
 	double lastChosenLinearX;/* in m/s */

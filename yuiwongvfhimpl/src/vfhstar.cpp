@@ -21,8 +21,7 @@
 #include "yuiwong/angle.hpp"
 namespace yuiwong
 {
-static std::ostream& operator<<(
-	std::ostream& os, std::vector<double> const& v)
+static std::ostream& operator<<(std::ostream& os, std::vector<double> const& v)
 {
 	for (auto const& d: v) {
 		os << d << " ";
@@ -40,12 +39,13 @@ BaseVfhStar::Param::Param():
 	maxSafetyDistance(0.3),
 	zeroMaxTurnrate(DegreeToRadian(80)),
 	maxMaxTurnrate(DegreeToRadian(40)),
+	turnrateIncre(3.0),
 	zeroFreeSpaceCutoff(4e6),
 	maxFreeSpaceCutoff(2e6),
 	zeroObsCutoff(4e6),
 	maxObsCutoff(2e6),
-	maxAcceleration(0.1),
-	desiredDirectionWeight(5.0),
+	maxAcceleration(0.2),
+	desiredDirectionWeight(1.0),
 	currentDirectionWeight(1.0),
 	minTurnRadiusSafetyFactor(1.0),
 	robotRadius(0.2) {}
@@ -60,6 +60,7 @@ BaseVfhStar::BaseVfhStar(Param const& param):
 	maxSafetyDistance(param.maxSafetyDistance),
 	zeroMaxTurnrate(param.zeroMaxTurnrate),
 	maxMaxTurnrate(param.maxMaxTurnrate),
+	turnrateIncre(param.turnrateIncre),
 	zeroFreeBinaryHistogram(param.zeroFreeSpaceCutoff),
 	maxFreeBinaryHistogram(param.maxFreeSpaceCutoff),
 	zeroObsBinaryHistogram(param.zeroObsCutoff),
@@ -71,6 +72,7 @@ BaseVfhStar::BaseVfhStar(Param const& param):
 	robotRadius(param.robotRadius),
 	desiredDirection(HPi),
 	pickedDirection(HPi),
+	turnrateScale(1.0),
 	lastUpdateTime(-1.0),
 	lastChosenLinearX(0),
 	lastPickedDirection(pickedDirection)
@@ -137,21 +139,21 @@ void BaseVfhStar::init()
 			this->cellMagnitude[x][y] = 0;
 			//cell_dist[x][y] = sqrt(pow((center_x - x), 2)
 			//+ pow((center_y - y), 2)) * cell_width;
-			this->cellDistance[x][y] = ::sqrt(
+			this->cellDistanceMM[x][y] = ::sqrt(
 				::pow((this->centerX - x), 2.0)
-				+ ::pow((this->centerY - y), 2.0)) * this->cellWidth;
+				+ ::pow((this->centerY - y), 2.0)) * 1e3 * this->cellWidth;
 			//cell_base_mag[x][y] = pow((3000.0 - cell_dist[x][y]), 4)
 			//	/ 100000000.0;
 			this->cellBaseMagnitude[x][y] = ::pow(
-				(3e3 - (this->cellDistance[x][y])), 4.0) / 1e8;
+				(3e3 - (this->cellDistanceMM[x][y])), 4.0) / 1e8;
 			/* set up cell direction with the angle in radians to each cell */
 			if (x < this->centerX) {
 				if (y < centerY) {
 					//cell_direction[x][y] =
 					//atan((double)(center_y - y) / (double)(center_x - x));
-					this->cellDirection[x][y] = ::atan2(
-						static_cast<double>(this->centerY - y),
-						static_cast<double>(this->centerX - x));
+					this->cellDirection[x][y] = ::atan(
+						static_cast<double>(this->centerY - y)
+						/ static_cast<double>(this->centerX - x));
 					/*this->cellDirection[x][y] *= (360.0 / 6.28);
 					this->cellDirection[x][y] =
 						180.0 - this->cellDirection[x][y];*/
@@ -162,9 +164,9 @@ void BaseVfhStar::init()
 				} else if (y > this->centerY) {
 					//cell_direction[x][y] =
 					//atan((double)(y - center_y) / (double)(center_x - x));
-					this->cellDirection[x][y] = ::atan2(
-						static_cast<double>(y - this->centerY),
-						static_cast<double>(this->centerX - x));
+					this->cellDirection[x][y] = ::atan(
+						static_cast<double>(y - this->centerY)
+						/ static_cast<double>(this->centerX - x));
 					/*this->cellDirection[x][y] *= (360.0 / 6.28);
 					this->cellDirection[x][y] =
 						180.0 + this->cellDirection[x][y];*/
@@ -187,18 +189,18 @@ void BaseVfhStar::init()
 				if (y < this->centerY) {
 					//cell_direction[x][y] =
 					//atan((double)(center_y - y) / (double)(x - center_x));
-					this->cellDirection[x][y] = ::atan2(
-						static_cast<double>(this->centerY - y),
-						static_cast<double>(x - this->centerX));
+					this->cellDirection[x][y] = ::atan(
+						static_cast<double>(this->centerY - y)
+						/ static_cast<double>(x - this->centerX));
 					/*this->cellDirection[x][y] *= (360.0 / 6.28);*/
 				} else if (y == this->centerY) {
 					this->cellDirection[x][y] = 0.0;
 				} else if (y > this->centerY) {
 					//cell_direction[x][y] =
 					//atan((double)(y - center_y) / (double)(x - center_x));
-					this->cellDirection[x][y] = ::atan2(
-						static_cast<double>(y - this->centerY),
-						static_cast<double>(x - this->centerX));
+					this->cellDirection[x][y] = ::atan(
+						static_cast<double>(y - this->centerY)
+						/ static_cast<double>(x - this->centerX));
 					/*this->cellDirection[x][y] *= (360.0 / 6.28);
 					this->cellDirection[x][y] =
 						360.0 - this->cellDirection[x][y];*/
@@ -224,14 +226,14 @@ void BaseVfhStar::init()
 				 * set cell enlarge to the angle by which a an obstacle must
 				 * be enlarged for this cell, at this speed
 				 */
-				if (DoubleCompare(this->cellDistance[x][y]) > 0) {
+				if (DoubleCompare(this->cellDistanceMM[x][y]) > 0) {
 					//r = robot_radius + get_safety_dist(thistableMaxSpeed);
 					double const r = this->robotRadius
 						+ this->getSafetyDistance(thistableMaxSpeed);
 					//cell_enlarge[x][y] =
 					//(double)asin(r / cell_dist[x][y]) * (180/m_pi);
 					this->cellEnlarge[x][y] =
-						::asin(r / this->cellDistance[x][y]);
+						::asin((r * 1e3) / this->cellDistanceMM[x][y]);
 				} else {
 					this->cellEnlarge[x][y] = 0;
 				}
@@ -357,12 +359,22 @@ void BaseVfhStar::init()
 void BaseVfhStar::update(
 	Eigen::Matrix<double, 361, 1> const& laserRanges,
 	double const currentLinearX,
-	double const goalDirection,
-	double const goalDistance,
+	double const goalDirection0,
+	double const goalDistance0,
 	double const goalDistanceTolerance,
 	double& chosenLinearX,
 	double& chosenAngularZ)
 {
+	double goalDirection;
+	double goalDistance;
+	if (DoubleCompare(::fabs(goalDirection0), HPi) > 0) {
+		goalDirection = ::copysign(HPi, goalDirection0);
+		goalDistance = 0;
+	} else {
+		goalDirection = goalDirection0;
+		goalDistance = goalDistance0;
+	}
+	YUIWONGLOGNWARN("BaseVfhStar", "UPDATE!");
 	double const now = NowSecond();
 	double const diffSeconds = now - this->lastUpdateTime;
 	this->lastUpdateTime = now;
@@ -385,7 +397,6 @@ void BaseVfhStar::update(
 	if (DoubleCompare(currentPoseSpeed, this->lastChosenLinearX) < 0) {
 		currentPoseSpeed = this->lastChosenLinearX;
 	}
-	YUIWONGLOGNDEBU("BaseVfhStar", "currentPoseSpeed %lf", currentPoseSpeed);
 	/*
 	 * work out how much time has elapsed since the last update,
 	 * so we know how much to increase speed by, given MAX_ACCELERATION.
@@ -397,8 +408,26 @@ void BaseVfhStar::update(
 		 */
 		this->pickedDirection = this->lastPickedDirection;
 		this->maxSpeedForPickedDirection = 0;
-		this->lastPickedDirection = this->pickedDirection;
+		//this->lastPickedDirection = this->pickedDirection;
+		this->turnrateScale = std::max(this->turnrateScale * 0.5, 0.01);
 	} else {
+		bool bd;
+		{
+			int const idx = ::rint(RadianToDegree(goalDirection * 2.0));
+			double const d = laserRanges[idx];
+			double const sd = this->getSafetyDistance(currentPoseSpeed)
+				+ this->robotRadius;
+			if (DoubleCompare(d, sd) < 0) {
+				bd = true;
+			} else {
+				bd = false;
+			}
+		}
+		if (bd) {
+			this->turnrateScale = std::min(this->turnrateScale * 1.01, 1.0);
+		} else {
+			this->turnrateScale = std::min(this->turnrateScale * 1.1, 1.0);
+		}
 		this->buildBinaryPolarHistogram(currentPoseSpeed);
 		this->buildMaskedPolarHistogram(currentPoseSpeed);
 		/*
@@ -406,6 +435,12 @@ void BaseVfhStar::update(
 		 * and maxSpeedForPickedDirection
 		 */
 		this->selectDirection();
+		/*if (bd && (DoubleCompare(
+			this->lastPickedDirection, this->desiredDirection) == 0)) {
+			YUIWONGLOGNDEBU("BaseVfhStar", "front ok but desiredDire bad");
+			this->lastPickedDirection *= 0.5;
+			this->pickedDirection = this->lastPickedDirection;
+		}*/
 	}
 	/*
 	 * ok, so now we've chosen a direction. time to choose a speed.
@@ -449,13 +484,29 @@ void BaseVfhStar::update(
 	/*chosenLinearX = std::min(maxvForDistance, chosenLinearX0);*/
 	chosenLinearX = chosenLinearX0;
 	chosenAngularZ = NormalizeAngle(chosenTurnrate);
+	/*if (DoubleCompare(chosenLinearX) > 0) {
+		chosenAngularZ *= this->turnrateScale;
+		this->lastPickedDirection = ::atan2(
+			chosenAngularZ / this->maxMaxTurnrate,
+			chosenLinearX / this->currentMaxSpeed);
+		if (DoubleCompare(::fabs(this->lastPickedDirection), HpPiDiv4) > 0) {
+			YUIWONGLOGNDEBU("BaseVfhStar", "wanna forward but angle large");
+			this->lastPickedDirection = ::copysign(
+				HpPiDiv4, this->lastPickedDirection);
+		}
+		this->lastPickedDirection += HPi;
+		this->pickedDirection = this->lastPickedDirection;
+		this->setMotion(currentPoseSpeed, chosenLinearX0, chosenTurnrate);
+	}*/
 	this->lastChosenLinearX = chosenLinearX0;
 	YUIWONGLOGNDEBU(
 		"BaseVfhStar",
-		"goal %lf %lf -> picked direction %lf -> max lx %lf -> final %lf %lf",
+		"[incr %lf] goal %lf %lf -> picked direction %lf -> max lx %lf -> "
+		"FINAL %lf %lf",
+		speedIncr,
 		goalDirection,
 		goalDistance,
-		this->pickedDirection,
+		this->lastPickedDirection,
 		this->maxSpeedForPickedDirection,
 		this->lastChosenLinearX,
 		chosenAngularZ);
@@ -467,7 +518,7 @@ void BaseVfhStar::update(
  */
 double BaseVfhStar::getSafetyDistance(double const speed) const
 {
-	double d = this->zeroSafetyDistance + (speed
+	double d = this->zeroSafetyDistance + ((speed / this->currentMaxSpeed)
 		* (this->maxSafetyDistance - this->zeroSafetyDistance));
 	if (DoubleCompare(d) < 0) {
 		d = 0;
@@ -491,9 +542,14 @@ void BaseVfhStar::setCurrentMaxSpeed(double const maxSpeed)
 	// WARNING: This assumes that the max_turnrate that has been set for VFH is
 	// accurate.
 	for (int x = 0; x < n; ++x) {
-		double const dx = x / 1e3;/* dx in m/s */
-		/* dtheta in radians/s */
-		double const dtheta = this->getMaxTurnrate(x);
+		//dx = (double) x / 1e6; // dx in m/millisec
+		double const dx = x / 1e6;/* dx in m/ms */
+		//dtheta = ((m_pi/180)*(double)(getmaxturnrate(x))) / 1000.0;
+		//dtheta in radians/millisec
+		/* dtheta in radians/s -> radians/ms */
+		double const dtheta = this->getMaxTurnrate(x) / 1e3;
+		//min_turning_radius[x] = (int) (((dx / tan(dtheta))*1000.0)
+		// * min_turn_radius_safety_factor); // in mm
 		/* in meters */
 		this->minTurningRadius[x] = (((dx / ::tan(dtheta)))
 			* this->minTurnRadiusSafetyFactor);
@@ -506,7 +562,9 @@ void BaseVfhStar::setCurrentMaxSpeed(double const maxSpeed)
  */
 double BaseVfhStar::getMaxTurnrate(double const speed) const
 {
-	double val = this->zeroMaxTurnrate - (speed
+	//int val = (MAX_TURNRATE_0MS
+	//- (int)(speed*(MAX_TURNRATE_0MS-MAX_TURNRATE_1MS)/1000.0));
+	double val = this->zeroMaxTurnrate - ((speed / this->currentMaxSpeed)
 		* (this->zeroMaxTurnrate - this->maxMaxTurnrate));
 	if (DoubleCompare(val) < 0) {
 		val = 0;
@@ -519,7 +577,7 @@ void BaseVfhStar::allocate()
 	this->cellDirection.clear();
 	this->cellBaseMagnitude.clear();
 	this->cellMagnitude.clear();
-	this->cellDistance.clear();
+	this->cellDistanceMM.clear();
 	this->cellEnlarge.clear();
 	this->cellSector.clear();
 	{
@@ -527,7 +585,7 @@ void BaseVfhStar::allocate()
 	this->cellDirection.resize(this->windowDiameter, tempv);
 	this->cellBaseMagnitude.resize(this->windowDiameter, tempv);
 	this->cellMagnitude.resize(this->windowDiameter, tempv);
-	this->cellDistance.resize(this->windowDiameter, tempv);
+	this->cellDistanceMM.resize(this->windowDiameter, tempv);
 	this->cellEnlarge.resize(this->windowDiameter, tempv);
 	}
 	{
@@ -554,24 +612,32 @@ void BaseVfhStar::allocate()
 bool BaseVfhStar::buildPrimaryPolarHistogram(
 	Eigen::Matrix<double, 361, 1> const& laserRanges, double const speed)
 {
-	YUIWONGLOGNDEBU("BaseVfhStar", "buildPrimaryPolarHistogram");
 	/* index into the vector of cell sector tables */
 	std::fill(this->histogram.begin(), this->histogram.end(), 0);
 	if (!this->calculateCellsMagnitude(laserRanges, speed)) {
 		/* set hist to all blocked */
-		YUIWONGLOGNDEBU("BaseVfhStar", "histogram all blocked: 1");
+		//YUIWONGLOGNDEBU("BaseVfhStar", "histogram all blocked: 1");
 		std::fill(this->histogram.begin(), this->histogram.end(), 1);
 		return false;
 	}
 	int const speedIndex = this->getSpeedIndex(speed);
 	/* only have to go through the cells in front */
 	int const n = ::ceil(this->windowDiameter / 2.0);
-	for (int y = 0;y <= n; ++y) {
+	for (int y = 0; y <= n; ++y) {
 		for (int x = 0; x < this->windowDiameter; ++x) {
-			auto& tmp = this->cellSector[speedIndex][x][y];
-			std::fill(tmp.begin(), tmp.end(), this->cellMagnitude[x][y]);
+			//for(i = 0;i<cell_sector[speed_index][x][y].size();i++) {
+			//hist[cell_sector[speed_index][x][y][i]] += cell_mag[x][y];
+			//}
+			auto const& cs = this->cellSector[speedIndex][x][y];
+			double const cm = this->cellMagnitude[x][y];
+			int const sz = cs.size();
+			for(int i = 0; i < sz; ++i) {
+				this->histogram[cs[i]] += cm;
+			}
 		}
 	}
+	//YUIWONGLOGDEBUS("buildPrimaryPolarHistogram done histogram\n"
+	//	<< this->histogram);
 	return true;
 }
 /**
@@ -580,7 +646,6 @@ bool BaseVfhStar::buildPrimaryPolarHistogram(
  */
 void BaseVfhStar::buildBinaryPolarHistogram(double const speed)
 {
-	YUIWONGLOGNDEBU("BaseVfhStar", "buildBinaryPolarHistogram");
 	for (int x = 0; x < this->histogramSize; ++x) {
 		if (DoubleCompare(
 			this->histogram[x], this->getObsBinaryHistogram(speed)) > 0) {
@@ -595,6 +660,8 @@ void BaseVfhStar::buildBinaryPolarHistogram(double const speed)
 	for (int x = 0; x < this->histogramSize; ++x) {
 		this->lastBinaryHistogram[x] = this->histogram[x];
 	}
+	//YUIWONGLOGDEBUS("buildBinaryPolarHistogram done histogram\n"
+	//	<< this->histogram);
 }
 /**
  * @brief build the masked polar histogram
@@ -603,7 +670,6 @@ void BaseVfhStar::buildBinaryPolarHistogram(double const speed)
  */
 void BaseVfhStar::buildMaskedPolarHistogram(double const speed)
 {
-	YUIWONGLOGNDEBU("BaseVfhStar", "buildMaskedPolarHistogram");
 	/*
 	 * centerX[left|right] is the centre of the circles on either side that
 	 * are blocked due to the robot's dynamics.
@@ -620,11 +686,18 @@ void BaseVfhStar::buildMaskedPolarHistogram(double const speed)
 	double const centery = this->centerY;
 	this->blockedCircleRadius = minTurningRadius + this->robotRadius
 		+ this->getSafetyDistance(speed);
+	//YUIWONGLOGDEBUS("buildMaskedPolarHistogram minTurningRadiusIdx "
+	//	<< minTurningRadiusIdx
+	//	<< " of sz " << this->minTurningRadius.size()
+	//	<< " blockedCircleRadius " << this->blockedCircleRadius);
 	/*
-	 * This loop fixes phi_left and phi_right so that they go through the inside-most
-	 * occupied cells inside the left/right circles. These circles are centred at the
-	 * left/right centres of rotation, and are of radius Blocked_Circle_Radius.
-	 * We have to go between phi_left and phi_right, due to our minimum turning radius.
+	 * This loop fixes phi_left and phi_right
+	 * so that they go through the inside-most occupied cells inside the
+	 * left/right circles.
+	 * These circles are centred at the left/right centres of rotation,
+	 * and are of radius blocked circle radius.
+	 * We have to go between phi_left and phi_right,
+	 * due to our minimum turning radius.
 	 * Only loop through the cells in front of us.
 	 */
 	int const n = ::ceil(this->windowDiameter / 2.0);
@@ -670,6 +743,8 @@ void BaseVfhStar::buildMaskedPolarHistogram(double const speed)
 			h = 1;
 		}
 	}
+	//YUIWONGLOGDEBUS("buildMaskedPolarHistogram done histogram\n"
+	//	<< this->histogram << "\nl " << phi_left << " r " << phi_right);
 }
 /** @brief select the used direction */
 void BaseVfhStar::selectDirection()
@@ -679,7 +754,7 @@ void BaseVfhStar::selectDirection()
 	/* set start to sector of first obstacle */
 	int start = -1;
 	{
-	YUIWONGLOGDEBUS("histogram\n" << this->histogram);
+	//YUIWONGLOGDEBUS("histogram\n" << this->histogram);
 	/* only look at the forward 180deg for first obstacle */
 	int const n = this->histogramSize / 2;
 	for(int i = 0; i < n; ++i) {
@@ -690,9 +765,18 @@ void BaseVfhStar::selectDirection()
 	}
 	}
 	if (start == -1) {
+		//if (!this->desiredDirHasObstacle) {
 		this->pickedDirection = this->desiredDirection;
 		this->lastPickedDirection = this->pickedDirection;
+		//} else {
+		//	this->pickedDirection = HPi;
+		//	this->lastPickedDirection = HPi;
+		//}
 		this->maxSpeedForPickedDirection = this->currentMaxSpeed;
+		/*if (DoubleCompare(::fabs(this->pickedDirection - HPi), HPi) <= 0) {
+			this->maxSpeedForPickedDirection *= ::cos(
+				this->pickedDirection - HPi);
+		}*/
 		YUIWONGLOGNDEBU(
 			"BaseVfhStar",
 			"front no obstacle detected: "
@@ -704,7 +788,7 @@ void BaseVfhStar::selectDirection()
 	}
 	/* find the left and right borders of each opening */
 	std::vector<std::pair<int, double> > border;
-	std::pair<int,int> newborder;
+	std::pair<int, double> newborder;
 	int const n = start + this->histogramSize;
 	bool left = true;
 	for (int i = start; i <= n; ++i) {
@@ -777,7 +861,6 @@ void BaseVfhStar::selectDirection()
 			}
 		}
 	}
-	YUIWONGLOGDEBUS("candidateAngle " << this->candidateAngle);
 	this->selectCandidateAngle();
 }
 /**
@@ -827,23 +910,25 @@ void BaseVfhStar::setMotion(
 	double const actualSpeed, double& linearX, double& turnrate)
 {
 	double const mx = this->getMaxTurnrate(actualSpeed);
+	int const pd = RadianToDegree(this->pickedDirection);
 	/* this happens if all directions blocked, so just spin in place */
 	if (DoubleCompare(linearX) <= 0) {
 		turnrate = mx;
 		linearX = 0;
-	} else if ((DoubleCompare(this->pickedDirection, TQCircle) >= 0)
-		&& (DoubleCompare(this->pickedDirection, DPi) < 0)) {
+	} else if ((pd > 270) && (pd < 360)) {
 		turnrate = -mx;
-	} else if ((DoubleCompare(this->pickedDirection, TQCircle) < 0)
-		&& (DoubleCompare(this->pickedDirection, M_PI) >= 0)) {
+	} else if ((pd > 180) && (pd < 270)) {
 		turnrate = mx;
 	} else {
-		double const tmp = DegreeToRadian(75);
-		turnrate = ::rint(((this->pickedDirection - HPi) / tmp) * mx);
+		//turnrate = (int)rint(((double)(pickedDirection - 90) / 75.0) * mx);
+		//turnrate = ((pd - 90) / 75.0) * mx;
+		turnrate = (DegreeToRadian(pd - 90) * this->turnrateIncre) * mx;
 		if (DoubleCompare(::fabs(turnrate), mx) > 0) {
 			turnrate = ::copysign(mx, turnrate);
 		}
 	}
+	YUIWONGLOGNDEBU("BaseVfhStar", "pd %d  mx %lf  TMP %lf", pd, mx,
+		(pd - 90.0));
 }
 /**
  * @brief get the speed index (for the current local map)
@@ -852,12 +937,12 @@ void BaseVfhStar::setMotion(
  */
 int BaseVfhStar::getSpeedIndex(double const speed) const
 {
-	int idx = ::floor(((speed * 1e3) / this->currentMaxSpeed)
+	int idx = ::floor((speed / this->currentMaxSpeed)
 		* this->cellSectorTablesCount);
 	if (idx >= this->cellSectorTablesCount) {
 		idx = this->cellSectorTablesCount - 1;
 	}
-	YUIWONGLOGNDEBU("BaseVfhStar", "speed index at %lf m/s: %d", speed, idx);
+	//YUIWONGLOGNDEBU("BaseVfhStar", "speed idx at %lf m/s: %d", speed, idx);
 	return idx;
 }
 /** @param speed linear x velocity, m/s, >=0 */
@@ -891,15 +976,17 @@ bool BaseVfhStar::calculateCellsMagnitude(
 	 * Only deal with the cells in front of the robot,
 	 * since we can't sense behind.
 	 */
-	YUIWONGLOGDEBUS("laserRanges\n" << laserRanges.transpose());
+	//YUIWONGLOGDEBUS("laserRanges\n" << laserRanges.transpose());
 	for (int x = 0; x < this->windowDiameter; ++x) {
 		int const n = ::ceil(this->windowDiameter / 2.0);
 		for (int y = 0; y < n; ++y) {
 			/* controllo se il laser passa attraverso la cella */
-			double const cdis = this->cellDistance[x][y];
+			double const cdis = this->cellDistanceMM[x][y] * 1e-3;
 			double const cdir = this->cellDirection[x][y];
-			int const idx = static_cast<int>(::rint(
-				NormalizeDegreeAnglePositive(RadianToDegree(cdir * 2.0))));
+			int const idx = ::rint(RadianToDegree(cdir * 2.0));
+			if ((idx > 360) || (idx < 0)) {
+				throw std::logic_error("bad idx");
+			}
 			double const lr = laserRanges[idx];
 			if (DoubleCompare(cdis + (this->cellWidth / 2.0), lr) > 0) {
 				if ((DoubleCompare(cdis, r) < 0)
@@ -910,15 +997,17 @@ bool BaseVfhStar::calculateCellsMagnitude(
 					 */
 					YUIWONGLOGNDEBU(
 						"BaseVfhStar",
-						"%d %d %d %d: %lf %lf lr %lf inside safety %lf",
+						"[dire %lf idx %d laser %lf] %d %d %d %d "
+						"inside safety %lf",
+						cdir,
+						idx,
+						lr,
 						this->centerX,
 						this->centerY,
 						x,
 						y,
-						cdir,
-						cdis,
-						lr,
 						r);
+					//this->cellMagnitude[x][y] = 1.0;
 					return false;
 				} else {
 					// cella piena quindi:
@@ -940,6 +1029,8 @@ bool BaseVfhStar::calculateCellsMagnitude(
  */
 double BaseVfhStar::getFreeBinaryHistogram(double const speed) const
 {
+	//return (binary_hist_low_0ms
+	//- (speed*(binary_hist_low_0ms-binary_hist_low_1ms)/1000.0));
 	return this->zeroFreeBinaryHistogram - (speed
 		* (this->zeroFreeBinaryHistogram - this->maxFreeBinaryHistogram));
 }
@@ -950,6 +1041,8 @@ double BaseVfhStar::getFreeBinaryHistogram(double const speed) const
  */
 double BaseVfhStar::getObsBinaryHistogram(double const speed) const
 {
+	//return (binary_hist_high_0ms
+	//- (speed*(binary_hist_high_0ms-binary_hist_high_1ms)/1000.0));
 	return this->zeroObsBinaryHistogram - (speed *
 		(this->zeroObsBinaryHistogram - this->maxObsBinaryHistogram));
 }
@@ -959,6 +1052,7 @@ double BaseVfhStar::getObsBinaryHistogram(double const speed) const
  */
 void BaseVfhStar::selectCandidateAngle()
 {
+	YUIWONGLOGDEBUS("selectCandidateAngle " << this->candidateAngle);
 	if (this->candidateAngle.size() <= 0) {
 		/*
 		 * we're hemmed in by obstacles -- nowhere to go,
