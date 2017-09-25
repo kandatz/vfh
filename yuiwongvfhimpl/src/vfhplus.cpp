@@ -103,10 +103,15 @@ delete[] Last_Binary_Hist;
  */
 int VfhPlus::getMaxTurnrate(int const speed) const
 {
-int val = (MAX_TURNRATE_0MS - (int)(speed*(MAX_TURNRATE_0MS-MAX_TURNRATE_1MS)/1000.0));
-if (val < 0)
-val = 0;
-return val;
+	//int val = (MAX_TURNRATE_0MS
+	//- (int)(speed*(MAX_TURNRATE_0MS-MAX_TURNRATE_1MS)/1000.0));
+	int val = (this->MAX_TURNRATE_0MS
+		- ((1.0 * speed / this->Current_Max_Speed)
+		* (this->MAX_TURNRATE_0MS - this->MAX_TURNRATE_1MS) / 1e3));
+	if (val < 0) {
+		val = 0;
+	}
+	return val;
 }
 /**
 * Set the current max speed
@@ -613,8 +618,7 @@ start = i;
 break;
 }
 }
-if (start == -1)
-{
+if (start == -1) {
 pickedDirection = desiredDirection;
 lastPickedDirection = pickedDirection;
 maxSpeedForPickedDirection = Current_Max_Speed;
@@ -1010,13 +1014,12 @@ void VfhPlus::setMotion(double& linearX, int& turnrate, int const actualSpeed)
 	} else if ((pickedDirection < 270) && (pickedDirection > 180)) {
 		turnrate = mx;
 	} else {
-		turnrate = (int)rint(((double)(pickedDirection - 90) / 75.0) * mx);
+		//turnrate = (int)rint(((double)(pickedDirection - 90) / 75.0) * mx);
+		turnrate = ::rint(((this->pickedDirection - 90.0) / 45.0) * mx);
 		if (::std::abs(turnrate) > mx) {
 			turnrate = ::copysign(mx, turnrate);
 		}
 	}
-	/*std::cout << "mx " << mx << " pickedDirection " << pickedDirection
-		<< " tr " << turnrate << "\n";*/
 }
 /** @deprecated please use ConvertScan * 1e3 */
 Eigen::Matrix<double, 361, 1>& VfhPlus::convertScanMM(
