@@ -1016,6 +1016,7 @@ void VfhPlus::setMotion(double& linearX, int& turnrate, int const actualSpeed)
 {
 	int const mx = this->getMaxTurnrate(actualSpeed);
 	/* this happens if all directions blocked, so just spin in place */
+#	if 0
 	if (DoubleCompare(linearX) <= 0) {
 		turnrate = mx;
 		linearX = 0;
@@ -1030,6 +1031,22 @@ void VfhPlus::setMotion(double& linearX, int& turnrate, int const actualSpeed)
 			turnrate = ::copysign(mx, turnrate);
 		}
 	}
+#	else
+	if (DoubleCompare(linearX) <= 0) {
+		linearX = 0;
+	}
+	if ((pickedDirection > 270) && (pickedDirection < 360)) {
+		turnrate = -mx;
+	} else if ((pickedDirection < 270) && (pickedDirection > 180)) {
+		turnrate = mx;
+	} else {
+		//turnrate = (int)rint(((double)(pickedDirection - 90) / 75.0) * mx);
+		turnrate = ::rint(((this->pickedDirection - 90.0) * this->azacc) * mx);
+		if (::std::abs(turnrate) > mx) {
+			turnrate = ::copysign(mx, turnrate);
+		}
+	}
+#	endif
 }
 /** @deprecated please use ConvertScan * 1e3 */
 Eigen::Matrix<double, 361, 1>& VfhPlus::convertScanMM(
