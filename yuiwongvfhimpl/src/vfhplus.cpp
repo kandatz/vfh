@@ -47,6 +47,7 @@ namespace yuiwong
 * @param weight_current_dir weight of the current direction
 */
 VfhPlus::VfhPlus(Param const& param):
+	azacc(1.0 / 45),
 	CELL_WIDTH(param.cell_size),
 	WINDOW_DIAMETER(param.window_diameter),
 	SECTOR_ANGLE(param.sector_angle),
@@ -344,6 +345,15 @@ void VfhPlus::init()
 	}
 	}
 	this->lastUpdateTime = NowSecond();
+}
+/** @apram s angular z vel acc in scale/degree  */
+void VfhPlus::setAngularZVelAcceleration(double const s)
+{
+	if (DoubleCompare(::fabs(s), (1.0 / 180.0)) < 0) {
+		this->azacc = 1.0 / 180;
+	} else {
+		this->azacc = ::fabs(s);
+	}
 }
 /**
 * Allocate the VFH+ memory
@@ -1015,7 +1025,7 @@ void VfhPlus::setMotion(double& linearX, int& turnrate, int const actualSpeed)
 		turnrate = mx;
 	} else {
 		//turnrate = (int)rint(((double)(pickedDirection - 90) / 75.0) * mx);
-		turnrate = ::rint(((this->pickedDirection - 90.0) / 45.0) * mx);
+		turnrate = ::rint(((this->pickedDirection - 90.0) * this->azacc) * mx);
 		if (::std::abs(turnrate) > mx) {
 			turnrate = ::copysign(mx, turnrate);
 		}

@@ -184,6 +184,8 @@ struct VfhPlus {
 		Eigen::Matrix<double, 361, 1>& result);
 	/** @brief start up the vfh+ algorithm */
 	void init();
+	/** @apram s angular z vel acc in scale/degree  */
+	void setAngularZVelAcceleration(double const s);
 	/**
 	 * @brief update the vfh+ state using the laser readings and the robot
 	 * speed
@@ -286,6 +288,7 @@ double ROBOT_RADIUS; // millimeters
 int CENTER_X; // cells
 int CENTER_Y; // cells
 int HIST_SIZE; // sectors (over 360deg)
+double azacc;
 double CELL_WIDTH; // millimeters
 int WINDOW_DIAMETER; // cells
 int SECTOR_ANGLE; // degrees
