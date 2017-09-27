@@ -359,21 +359,12 @@ void BaseVfhStar::init()
 void BaseVfhStar::update(
 	Eigen::Matrix<double, 361, 1> const& laserRanges,
 	double const currentLinearX,
-	double const goalDirection0,
-	double const goalDistance0,
+	double const goalDirection,
+	double const goalDistance,
 	double const goalDistanceTolerance,
 	double& chosenLinearX,
 	double& chosenAngularZ)
 {
-	double goalDirection;
-	double goalDistance;
-	if (DoubleCompare(::fabs(goalDirection0), HPi) > 0) {
-		goalDirection = ::copysign(HPi, goalDirection0);
-		goalDistance = 0;
-	} else {
-		goalDirection = goalDirection0;
-		goalDistance = goalDistance0;
-	}
 	YUIWONGLOGNWARN("BaseVfhStar", "UPDATE!");
 	double const now = NowSecond();
 	double const diffSeconds = now - this->lastUpdateTime;
