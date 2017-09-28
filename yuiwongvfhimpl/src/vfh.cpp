@@ -21,7 +21,47 @@
 namespace yuiwong
 {
 /**
- * @brief convert sensor_msgs/LaserScan to M_PI [-HPi, HPi] degree result,
+ * @brief 2d cloud points to vfh range
+ * @param[in] cloud cloud points in desired frame
+ * @param[in] radius if <= @a radius, use +inf
+ * @param[out] result converted result
+ * result in input params unit (usually meters), and for [-HPi, HPi],
+ * NOTE resultidx and resultidx+1 is same
+ */
+void CloudToVfhRange(
+	std::vector<Eigen::Vector2d> const& cloud,
+	double const radius,
+	Eigen::Matrix<double, 361, 1>& result)
+{
+	for (int i = 0; i < 361; ++i) {
+		result[i] = std::numeric_limits<double>::max();
+	}
+	for (Eigen::Vector2d const& point: cloud) {
+		double const theta = ::atan2(point(1), point(0));
+		if (std::isnan(theta)) {
+			continue;
+		}
+		if (DoubleCompare(::fabs(theta), HPi) > 0) {
+			continue;
+		}
+		double const d = ::hypot(point(0), point(1));
+		if (DoubleCompare(d, radius) <= 0) {
+			continue;
+		}
+		int const idx = static_cast<int>(RadianToDegree(theta)) * 2 + 180;
+		if (idx < 360) {
+			result[idx] = result[idx + 1] = d;
+		} else if (idx < 361) {
+			result[idx] = d;
+		}
+	}
+	if (std::isinf(result[360])) {
+		result[360] = result[359];
+	}
+}
+/**
+ * @deprecated PLEASE USE CloudToVfhRange
+ * @dbrief convert sensor_msgs/LaserScan to M_PI [-HPi, HPi] degree result,
  * if laser range more than [-HPi, HPi], laser will be cut,
  * if laser range less than [-HPi, HPi], part or all result will be +inf
  * @param[in] ranges valid ranges from LaserScan
